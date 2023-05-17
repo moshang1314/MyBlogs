@@ -1193,7 +1193,7 @@ setfacl -b /home/li	#删除所有acl权限
 [详情页](https://www.cnblogs.com/liuyuelinfighting/p/15623163.html#tid-y3bHrD)
 
 >* 小s权限标识在所有者位的时候，特殊权限位SetUID
->* 小s权限标识在所属主的时候，特殊权限位SetGID
+>* 小s权限标识在所属组的时候，特殊权限位SetGID
 >* 小t权限标识在其他位的时候，特殊权限位Sticky BIT
 >
 >4代表SUID

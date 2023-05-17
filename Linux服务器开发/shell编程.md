@@ -72,7 +72,7 @@ Shell会fork一个子进程并调用exec执行./test.sh这个程序，exec系统
 itcast$ /bin/sh ./test.sh
 ```
 
-**以这种方式执行不需要test.sh1文件具有可执行权限。**
+**以这种方式执行不需要test.sh文件具有可执行权限。**
 
 **如果将命令行下输入的命令用()括号括起来，那么也会fork出一个子Shell执行小括号中的命令**，一行中可以输入由分号;隔开的多个命令，比如：
 
@@ -1125,7 +1125,7 @@ done
 >
 >    ```shell
 >    #! /bin/sh
->             
+>                
 >    if [ -z "$1" ]; then
 >    	set -x
 >    	echo "ERROR: Insufficient Args."
@@ -1698,7 +1698,7 @@ itcast$ grep 'w(es)t.*\1' aa
 >
 >    ```c
 >    int regcomp(regex_t* compiled, const char *pattern, int cflags);
->    
+>       
 >    /*
 >    regex_t	是一个结构体数据类型，用来存放编译后的正则表达式，它的成员re_nsub用来存储正则表达式中的子正则表达式的个数，正则表达式就是用圆括号包起来的部分表达式。
 >    pattern  是指向我们写好的正则表达式的指针
@@ -1750,7 +1750,7 @@ itcast$ grep 'w(es)t.*\1' aa
 >
 >    ```c
 >    size_t regerror (int errcode, regex_t *compiled, char *buffer, size_t length)
->    
+>       
 >    /*
 >    errcode 	是由regcomp 和 regexec 函数返回的错误代号。
 >    compiled 	是已经用regcomp函数编译好的正则表达式，这个值可以为NULL。

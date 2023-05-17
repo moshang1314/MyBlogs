@@ -1,5 +1,7 @@
 # 1 标识
 
+> [繁华似锦Fighting - 简书 (jianshu.com)](https://www.jianshu.com/u/fa63cd14aa2c)
+>
 > Git是分布式版本控制系统，所以需要填写用户名和邮箱作为一个标识。
 >
 > ```shell
