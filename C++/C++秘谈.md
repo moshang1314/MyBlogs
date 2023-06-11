@@ -1,3 +1,5 @@
+> ![image-20230530105820911](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230530105820911.png)
+
 # 1 类中的const成员
 
 > 1) **一个const对象不能调用非const成员函数**，即使成员函数并没有改变对象成员的值，编译器也会认为其改变了对象。所以要想调用哪个函数，就只能把那个函数设成const函数，也就是在函数后加const。
@@ -31,4 +33,75 @@
 > m[0];	//此时m[0] = int() = 0
 > ```
 >
+
+# 4 C++11中`using`引入的两种新用法
+
+## 4.1 在子类中引用基类的成员
+
+> 举例子类私有继承父类，私有继承会继承父类的`public`和`protect`部分为子类的`private`成员，这意味着无法使用子类对象直接调用父类成员。
+>
+> 但是可以使用`using`可以访问。
+>
+> eg:
+>
+> ```c++
+> class father{
+> public:
+> 	father() : values(55){}
+> 	virtual ~father(){}
+> 	void test1() { cout << "father test1..." << endl; }
+> protected:
+> 	int value;
+> };
 > 
+> class son : private father{
+> public:
+>     using father::test1;
+>     using father::value;
+>     void test2() { cout << "value is " << value << endl; }
+> };
+> 
+> int main()
+> {
+>     son son;
+>     son.test1();
+>     son.test2();
+> }
+> ```
+
+## 4.2 `using`定义别名
+
+> 众所周知，在C++可以通过`typedef`重命名一个类型：
+>
+> ```c++
+> typedef unsigned int uint_t;
+> typedef void (*Fun) (int, const std::string&);
+> ```
+>
+> 如果使用`using`的话，可以：
+>
+> ```c++
+> using Fun = void (*) (int, const std::string&);
+> ```
+
+> 使用using定义别名看起来和typedef用法差不多，但实际上typedef无法重命名模板。
+>
+> C++ prime plus P482
+>
+> ```
+> template<class T, T v>
+> struct m_integral_constant
+> {
+>     static constexpr T value = v;
+> };
+> 
+> template <bool b>
+> using m_bool_constant = m_intergral_constant<bool, b>;
+> 
+> typedef m_bool_constant<true> m_true_type;
+> typedef m_bool_constant<false> m_false_type;
+> ```
+>
+
+
+

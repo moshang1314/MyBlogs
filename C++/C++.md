@@ -29,5 +29,7 @@
 > * 仿函式（Functors）
 >
 > ![image-20230517103755016](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230517103755016.png)
->
-> 
+
+## 2.1 容器分类
+
+> ![image-20230518101715637](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230518101715637.png)

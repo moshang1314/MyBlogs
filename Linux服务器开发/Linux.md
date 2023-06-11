@@ -796,7 +796,7 @@
 > }
 > ```
 >
-> ​	rlim_t是一个整数类型，它描述了资源级别。rlim_cur成员指定资源的软限制，rlim_max成员指定资源的硬限制。软限制是一个建议性的、最好不要超越的限制，如果超越的话，系统可能向进程发送信号以终止其运行。例如，当进程CPU时间超过其软限制时，系统将向进程发送SIGXCPU信号；当文件尺寸超过其软限制时，系统将向进程发送SIGXFSZ信号。**硬限制一般是软限制的上限。**普通程序可以减少硬限制，而只有root身份运行的程序才能增加硬限制。此外，我们可以使用ulimit命令修改当前shell环境下的资源限制（软限制或/和硬限制），这种修改将对该shell启动的所有后续程序有效。我们也可以通过修改配置文件来改变系统软限制和硬限制。下表列举了部分比较重要的资源限制类型。
+> ​	rlim_t是一个整数类型，它描述了资源级别。rlim_cur成员指定资源的软限制，rlim_max成员指定资源的硬限制。软限制是一个建议性的、最好不要超越的限制，如果超越的话，系统可能向进程发送信号以终止其运行。例如，当进程CPU时间超过其软限制时，系统将向进程发送SIGXCPU信号；当文件尺寸超过其软限制时，系统将向进程发送SIGXFSZ信号。**硬限制一般是软限制的上限。普通程序可以减少硬限制，而只有root身份运行的程序才能增加硬限制**。此外，我们可以使用ulimit命令修改当前shell环境下的资源限制（软限制或/和硬限制），这种修改将对该shell启动的所有后续程序有效。我们也可以通过修改配置文件来改变系统软限制和硬限制。下表列举了部分比较重要的资源限制类型。
 >
 > 软限制: 对进程的资源数的限制的当前值, 可用getrlimit读取, setrlimit设置, 参数struct rlimitr.lim_cur. 软限制是限制的当前值, 小于等于 硬限制, 实际进程可以调用setrlimit增长到硬限制值. 也就是说, 软限制对进程并不是真正的限制.
 > 硬限制: 对进程的资源数的限制的最大值, 也可以用getrlimit读取/setrlimit设置, 参数struct rlimitr.rlim_max. 硬限制是绝对上限值, 进程增长资源数不会超过硬限制.
@@ -1053,7 +1053,7 @@
 >
 > ​	按照同步方式运行的线程称为同步线程，按照异步方式运行的线程称为异步线程。显然，异步线程的执行效率高，实时性强，这是很多嵌入式程序采用的模型。但编写以异步方式执行的程序相对复杂，难以调试和扩展，而且不适合于大量的并发。而同步线程则相反，它虽然效率相对较低，实时性较差，但逻辑简单。因此，对于像服务器这种既要求较好实时性，又要求能同时处理多个客户请求的应用程序，我们就应该使用同步线程和异步线程来实现，即采用半同步/半异步模式来实现。
 >
-> ​	半同步/半异步模式中，同步线程用于处理客户逻辑，相当于图8-4中的逻辑单元；异步线程用于处理I/O事件，相当于图8-4中的I/O处理单元。异步线程监听到客户请求后，就将其封装成请求对象并插入请求队列中。请求队列将通知某个工作在同步模式的工作线程来读取并处理该请求对象。具体选择哪个工作线程来为新的客户请求服务，则取决于请求队列的设计。比如最简单的轮流选取工作线程的Round Robin算法，也可以通过条件变量或信号量来随机地选择一个工作线程。图8-9总结了半同步/半异步模式的工作流程。
+> ​	半同步/半异步模式中，**同步线程用于处理客户逻辑**，相当于图8-4中的逻辑单元；**异步线程用于处理I/O事件**，相当于图8-4中的I/O处理单元。异步线程监听到客户请求后，就将其封装成请求对象并插入请求队列中。请求队列将通知某个工作在同步模式的工作线程来读取并处理该请求对象。具体选择哪个工作线程来为新的客户请求服务，则取决于请求队列的设计。比如最简单的轮流选取工作线程的Round Robin算法，也可以通过条件变量或信号量来随机地选择一个工作线程。图8-9总结了半同步/半异步模式的工作流程。
 >
 > ![image-20230217164411022](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230217164411022.png)
 >
@@ -1061,7 +1061,7 @@
 >
 > ![image-20230220202800549](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230220202800549.png)
 >
-> ​	图8-10中，异步线程只有一个，由主线程来充当。它负责监听所有所有socket上的事件。如果监听socket上有可读事件发生，即有新的连接请求到来，主线程就接受之以得到新的连接socket，然后往epoll内核事件表中注册该socket上的读写事件。如果连接socket上有读写事件发生，即有新的客户到来或有数据要发送到客户端，主线程插入请求队列中。所有工作线程都睡眠在请求队列上，当有任务到来时，它们将通过竞争（比如申请互斥锁）获得任务的接管权。这种竞争机制使得只有空闲的工作线程才有机会来处理新任务，这是很合理的。
+> ​	图8-10中，**异步线程只有一个，由主线程来充当。它负责监听所有所有socket上的事件**。如果监听socket上有可读事件发生，即有新的连接请求到来，主线程就接受之以得到新的连接socket，然后往epoll内核事件表中注册该socket上的读写事件。如果连接socket上有读写事件发生，即有新的客户到来或有数据要发送到客户端，主线程插入请求队列中。所有工作线程都睡眠在请求队列上，当有任务到来时，它们将通过竞争（比如申请互斥锁）获得任务的接管权。这种竞争机制使得只有空闲的工作线程才有机会来处理新任务，这是很合理的。
 >
 > ​	图8-10中，主线程插入请求队列中的任务是就绪的连接socket。这说明该图所示的半同步/半异步反应堆模式采用的事件处理模式是Reactor模式：它要求工作线程自己从socket上读取客户请求和往socket写入服务器应答。这就是该模式的名称“half-reactive”的含义。实际上，半同步/半反应堆模式也可以使用模拟的Proactor事件处理模式，即由主线程来完成数据的读写。在这种情况下，主线程一般会将应用程序数据、任务类型等信息封装为一个任务对象，然后将其（或者指向该任务对象的一个指针）插入请求队列。工作线程从请求队列中取得任务对象之后，即可处理之，而无须执行读写操作了。
 >
@@ -1073,6 +1073,376 @@
 ### 3.5.2 领导者/追随者模式
 
 ## 3.6 有限状态机
+
+> ​	前面两节探讨的是服务器的I/O处理单元、请求队列和逻辑单元之间协调完成任务的各种模式，这一节我们介绍逻辑单元内部的一种高效编程方法：有限状态机（finite state machine）。
+>
+> ​	有的应用层协议头部包含数据包类型字段，每种类型可以映射为逻辑单元的一种执行状态，服务器可以根据它来编写相应的处理逻辑，如以下代码所示：
+>
+> ```c
+> STATE_MACHINE(Package_pack)
+> {
+> 	PackageType _type = _pack.GetType();
+> 	switch(_type)
+> 	{
+> 		case type_A:
+> 			process_package_A(_pack);
+> 		case type_B:
+> 			process_package_B(_pack);
+> 			break;
+> 	}
+> }
+> ```
+>
+> ​	这是一个简单的有限状态机，只不过该状态机的每个状态都是相互独立的，即状态之间没有相互转移。状态之间的转移是需要状态机内部驱动的，如代码所示：
+>
+> ```c
+> STATE_MACHINE()
+> {
+> 	State cur_State = type_A;
+> 	while(cur_State != type_C)
+> 	{
+> 		Package _pack = getNewPackage();
+> 		switch(cur_State)
+> 		{
+> 			case type_A:
+> 				process_package_state_A(_pack);
+> 				cur_State = type_B;
+> 				break;
+> 			case type_B:
+> 				process_package_state_B(_pack);
+> 				cur_State = type_C;
+> 				break;
+> 		}
+> 	}
+> }
+> ```
+>
+> ​	该状态机包含三种状态：type_A、type_B和type_C，其中type_A是状态机的开始状态，type是状态机的结束状态。状态机的当前状态记录在cur_State变量中。在一趟循环过程中，状态机先通过getNewPackage方法获得一个新的数据包，然后根据cur_State变量的值判断如何处理该数据包。数据包处理完之后，状态机通过给cur_State变量传递目标状态值来实现状态转移。那么当状态机进入下一趟循环时，它将执行新的状态对应的逻辑。
+>
+> ​	下面我们考虑有限状态机应用的一个实例：HTTP请求的读取和分析。很多网络协议，包括TCP协议和IP协议，都在其头部中提供头部长度字段。程序根据该字段的值就可以知道是否接收到一个一个完整的协议头部。但HTTP协议并未提供这样的头部长度字段，并且其头部变化很大，可以只有十几字节，也可以有上百字节。根据协议规定，我们判断HTTP头部结束的依据是遇到一个空行，该空行仅包含一对回车换行符（`<CR><LF>`)。如果一次读操作没有读入HTTP请求的整个头部，即没有遇到空行，那么我们必须等待客户继续写数据并再次读入。因此，我们每完成因此读操作，就要分析新读入的数据中是否有空行。不过在寻找空行的过程中，我们可以同时完成对整个HTTP请求头部的分析（记住，空行前面还有请求行和头部域），以提高解析HTTP请求的效率。以下代码使用主、从两个有限状态机实现了最简单的HTTP请求的读取和分析。为了使表述简洁，我们约定，直接称HTTP请求的一行（包括请求行和头部字段）为行。
+>
+> ```c++
+> #include <sys/socket.h>
+> #include <netinet/in.h>
+> #include <arpa/inet.h>
+> #include <assert.h>
+> #include <stdio.h>
+> #include <stdlib.h>
+> #include <unistd.h>
+> #include <errno.h>
+> #include <string.h>
+> #include <strings.h>
+> #include <fcntl.h>
+> #define BUFFER_SIZE 4096 /* 读缓冲区大小 */
+> 
+> /* 主状态机的两种可能状态，分别表示：当前正在分析请求行，当前正在分析头部字段 */
+> enum CHECK_STATE { CHECK_STATE_REQUESTLINE = 0, CHECK_STATE_HEADER };
+> /* 从状态机的三种可能的状态，即行的读取状态，分别表示：读取到一个完整的行、行出错和行数据尚且不完整 */
+> enum LINE_STATUS { LINE_OK = 0, LINE_BAD, LINE_OPEN };
+> 
+> /* 服务器处理HTTP请求的结果：NO_REQUEST表示请求不完整，需要继续读取客户端数据；GET_REQUEST表示获得了一个完整的客户请求；BAD_REQUEST
+> 表示客户请求有语法错误；FORBIDDEN_REQUEST表示客户对资源没有足够的访问权限；INTERNAL_ERROR表示服务器内部错误；CLOSED_CONNECTION表示客户端
+> 已经关闭连接了 */
+> enum HTTP_CODE { NO_REQUEST, GET_REQUEST, BAD_REQUEST,
+>                 FORBIDDEN_REQUEST, INTERNAL_ERROR, CLOSED_CONNECTION };
+> /* 为了简化问题，我们没有给客户端发送一个完整的HTTP应答报文，而只是根据服务器的处理结果发送如下成功或失败信息 */
+> static const char* szret[] = { "I get a correct result\n", "Something wrong\n"};
+> 
+> /* 从状态机，用于解析出一行内容 */
+> LINE_STATUS parse_line(char* buffer, int& checked_index, int& read_index)
+> {
+>     char temp;
+>     /* checked_index指向buffer（应用程序的读缓冲区）中当前正在分析的字节，read_index指向buffer中客户数据的尾部的下一个字节。
+>     buffer中第0~checked_index字节都已分析完毕，第checked_index~（read_index-1）字节由下面的循环挨个分析 */
+>     for( ; checked_index < read_index; ++checked_index)
+>     {
+>         /* 获得当前要分析的字节 */
+>         temp = buffer[checked_index];
+>         /* 如果当前的字节是“\r”，即回车符，则说明可能读到一个完整的行 */
+>         if(temp == '\r')
+>         {
+>             /* 如果“\r”字符碰巧是目前buffer中最后一个已经被读入的客户数据，那么这次
+>             分析没有读到一个完整的行，返回LINE_OPEN以表示还需要继续读取客户数据才能进一步分析 */
+>             if((checked_index + 1) == read_index)
+>             {
+>                 return LINE_OPEN;
+>             }
+>             /* 如果下一个字符是“\n”，则说明我们成功读取到一个完整的行 */
+>             else if(buffer[checked_index + 1] == '\n')
+>             {
+>                 buffer[checked_index++] = '\0';
+>                 buffer[checked_index++] = '\0';
+>                 return LINE_OK;
+>             }
+>             /* 否则的话，说明客户发送的HTTP请求存在语法问题 */
+>             return LINE_BAD;
+>         }
+>         /* 如果当前的字节是“\n”，即换行符，则也说明可能读取到一个完整的行 */
+>         else if(temp == '\n')
+>         {
+>             if((checked_index > 1) && buffer[checked_index - 1] == '\r')
+>             {
+>                 buffer[checked_index - 1] = '\0';
+>                 buffer[checked_index++] = '\0';
+>                 return LINE_OK;
+>             }
+>             return LINE_BAD;
+>         }
+>     }
+>     /* 如果所有内容都分析完毕也没有遇到“\r”字符，则返回LINE_OPEN，表示还需要继续读取客户数据才能进一步分析 */
+>         return LINE_OPEN;
+> }
+> /* 分析请求行 */
+> HTTP_CODE parse_requestline(char* temp, CHECK_STATE& checkstate)
+> {
+>     char* url = strpbrk(temp, " \t");   /* 如果请求行中没有空白字符或“\t”字符，则HTTP请求必有问题 */
+>     if(!url)
+>     {
+>         return BAD_REQUEST;
+>     }
+>     *url++ = '\0';
+> 
+>     char* method = temp;
+>     if(strcasecmp(method, "GET") == 0)  /* 仅支持GET方法 */
+>     {
+>         printf("The request method is GET\n");
+>     }
+>     else
+>     {
+>         return BAD_REQUEST;
+>     }
+> 
+>     url += strspn(url, " \t"); /* 跳过多余空格或“\t”字符 */
+>     char* version = strpbrk(url, " \t");
+>     if(!version)
+>     {
+>         return BAD_REQUEST;
+>     }
+>     *version++ = '\0';
+>     version += strspn(version, " \t");
+>     /* 仅支持HTTP/1.1 */
+>     if(strcasecmp(version, "HTTP/1.1") != 0)
+>     {
+>         return BAD_REQUEST;
+>     }
+>     /* 检查URL是否合法 */
+>     if(strncasecmp(url, "http://", 7) == 0)
+>     {
+>         url += 7;
+>         url = strchr(url, '/');
+>     }
+>     if(!url || url[0] != '/')
+>     {
+>         return BAD_REQUEST;
+>     }
+>     printf("The request URL is: %s:\n", url);
+>     /* HTTP 请求行处理完毕，状态转移到头部字段的分析 */
+>     checkstate = CHECK_STATE_HEADER;
+>     return NO_REQUEST;
+> }
+> 
+> /* 分析请求行 */
+> HTTP_CODE parse_headers(char* temp)
+> {
+>     /* 遇到一个空行，说明我们得到了一个正确的HTTP请求 */
+>     if(temp[0] == '\0')
+>     {
+>         return GET_REQUEST;
+>     }
+>     else if(strncasecmp(temp, "Host:", 5) == 0) /* 处理“Host"头部字段 */
+>     {
+>         temp += 5;
+>         temp += strspn(temp, " \t");
+>         printf("the request host is: %s\n", temp);
+>     }
+>     else    /* 其他头部字段都不处理 */
+>     {
+>         printf("I can not handle this header\n");
+>     }
+>     return NO_REQUEST;
+> }
+> 
+> 
+> /* 分析HTTP请求的入口函数 */
+> HTTP_CODE parse_content(char* buffer, int& checked_index, CHECK_STATE& checkstate, int& read_index, int& start_line)
+> {
+>     LINE_STATUS linestatus = LINE_OK;   /*记录当前行的读取状态 */
+>     HTTP_CODE retcode = NO_REQUEST;     /* 记录HTTP请求的处理结果 */
+>     /* 主状态机，用于从buffer中取出所有完整的行 */
+>     while((linestatus = parse_line(buffer, checked_index, read_index)) == LINE_OK)
+>     {
+>         char* temp = buffer + start_line;   /* start_line是行在buffer中的起始位置 */
+>         start_line = checked_index;         /* 记录下一行的起始位置 */
+>         /* checkstate 记录主状态机当前的状态 */
+>         switch(checkstate)
+>         {
+>            case CHECK_STATE_REQUESTLINE:    /* 第一个状态，分析请求行 */ 
+>            {
+>                 retcode = parse_requestline(temp, checkstate);
+>                 if(retcode == BAD_REQUEST)
+>                 {
+>                     return BAD_REQUEST;
+>                 }
+>                 break;
+>            }
+>             case CHECK_STATE_HEADER:    /* 第二个状态，分析头部字段 */
+>             {
+>                 retcode = parse_headers(temp);
+>                 if(retcode == BAD_REQUEST)
+>                 {
+>                     return BAD_REQUEST;
+>                 }
+>                 else if(retcode == GET_REQUEST)
+>                 {
+>                     return GET_REQUEST;
+>                 }
+>                 break;
+>             }
+>             default:
+>             {
+>                 return INTERNAL_ERROR;
+>             }
+>         }
+>     }
+>     /* 若没有读取到一个完整的行，则表示还需要继续读取客户数据才能进一步分析 */
+>     if(linestatus == LINE_OPEN)
+>     {
+>         return NO_REQUEST;
+>     }
+>     else
+>     {
+>         return BAD_REQUEST;
+>     }
+> }
+> int main(int argc, char* argv[])
+> {
+>     if(argc <= 2)
+>     {
+>         printf("usage: %s ip_address port_number\n", basename(argv[0]));
+>         return 1;
+>     }
+>     const char* ip = argv[1];
+>     int port = atoi(argv[2]);
+> 
+>     struct sockaddr_in address;
+>     bzero(&address, sizeof(address));
+>     address.sin_family = AF_INET;
+>     inet_pton(AF_INET, ip, &address.sin_addr);
+> 
+>     int listenfd = socket(PF_INET, SOCK_STREAM, 0);
+>     assert(listenfd >= 0);
+>     int ret = bind(listenfd, (struct sockaddr*)&address, sizeof(address));
+>     assert(ret != -1);
+>     ret = listen(listenfd, 5);
+>     assert(ret != -1);
+>     struct sockaddr_in client_address;
+>     socklen_t client_addrlength = sizeof(client_address);
+>     int fd = accept(listenfd, (struct sockaddr*)&client_address, &client_addrlength);
+>     if(fd < 0)
+>     {
+>         printf("errno is: %d\n", errno);
+>     }
+>     else
+>     {
+>         char buffer[BUFFER_SIZE]; /* 读缓冲区 */
+>         memset(buffer, '\0', BUFFER_SIZE);
+>         int data_read = 0;
+>         int read_index = 0; /* 当前已经读取了多少字节的客户数据 */
+>         int checked_index = 0; /* 当前已经分析完了多少字节的客户数据 */
+>         int start_line = 0; /* 行在buffer中的起始位置 */
+>         /* 设置主状态机的初始状态 */
+>         CHECK_STATE checkstate = CHECK_STATE_REQUESTLINE;
+>         while(1)    /* 循环读取数据并分析之 */
+>         {
+>             data_read = recv(fd, buffer + read_index, BUFFER_SIZE - read_index, 0);
+>             if(data_read == -1)
+>             {
+>                 printf("reading failed\n");
+>                 break;
+>             }
+>             else if(data_read == 0)
+>             {
+>                 printf("remote client has closed thee connection\n");
+>                 break;
+>             }
+>             read_index += data_read;
+>             /* 分析目前已经获得的所有客户端数据 */
+>             HTTP_CODE result = parse_content(buffer, checked_index, checkstate, read_index, start_line);
+>             if(result == NO_REQUEST)    /* 尚未得到一个完整的HTTP请求 */
+>             {
+>                 continue;
+>             }
+>             else if(result == GET_REQUEST) /* 得到一个完整的，正确的HTTP请求 */
+>             {
+>                 send(fd, szret[0], strlen(szret[0]), 0);
+>                 break;
+>             }
+>             else    /* 其他情况表示发生错误 */
+>             {
+>                 send(fd, szret[1], strlen(szret[1]), 0);
+>                 break;
+>             }
+>         }
+>         close(fd);
+>     }
+>     close(listenfd);
+>     return 0;
+> }
+> ```
+>
+> ​	我们将代码中的两个有限状态机分别称为主状态机和从状态机，这体现了它们之间的关系：主状态机在内部调用从状态机。下面分析从状态机，即parse_line函数，它从buffer中解析出一个行。图8-15描述了其可能的状态及状态转移过程。
+>
+> ![image-20230527105502472](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230527105502472.png)
+>
+> ​	这个状态机的初始状态时LINE_OK，其原始驱动动力来自于buffer中新到达的客户数据。在main函数中，我们循环调用recv函数往buffer中读入客户数据。每次成功读取数据后，我们就调用parse_content函数来分析新读入的数据。parse_content函数首先要做的就是调用parse_line函数来获取一个行。现在假设服务器经过一次recv调用之后，buffer的内容以及部分变量的值如8-16a所示。
+>
+> ​	parse_line函数处理后的结果如图8-16b所示，它挨个检查图8-16a所示的buffer中checked_index到（read_index - 1）之间的字节，判断是否存在行结束符，并更新checked_index的值。当前buffer中不存在行结束符，所以parse_line返回LINE_OPEN。接下来，程序继续调用recv以读取更多的客户数据，这次读操作后buffer中的内容以及部分变量的值如图8-16c所示。然后parse_line函数就又开始处理这部分新到来的数据，如图8-16d所示。这次它读取到了一个完整的行，即“HOST:localhost\r\n”。此时parse_line函数就可以将这行内容递交给parse_content函数中的主状态机来处理了。
+>
+> ![image-20230527110333720](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230527110333720.png)
+>
+> ​	主状态机使用checkstate变量来记录当前状态。如果当前的状态时CHECK_STATE_REQUESTLINE，则表示parse_line函数解析出的行是请求行，于是主状态机调用parse_requestline函数来分析请求行；如果当前状态是CHECK_STATE_HEADER，则表示parse_line函数解析出的是头部字段，于是主状态机调用parse_headers函数来分析头部字段。checkstate变量的初始值是CHEC_STATE_REQUESTLINE，parse_requestline函数在成功地分析完请求行之后将其设置为CHECK_STATE_HEADER，从而实现状态转移。
+>
+> ```c
+> #include <string.h>
+> size_t strspn(const char* str1, const char* str2);
+> /* 
+> 它的作用是返回在一个字符串中连续包含另一个字符串任意字符的最长起始子串的长度。
+> 通常用来跳过连续多余的空格或“\t”符号。
+> */
+> //eg:
+> strspn(url, " \t");
+> 
+> #include <string.h>
+> char *strpbrk(const char *s1, const char *s2);
+> /*
+> 在源字符串（s1）转给你找出最先含有搜索字符串（s2）中任一字符的位置并返回，若找不到则返回空指针。
+> 通常用来找到HTTP报文请求行的分隔符。
+> */
+> //eg:
+> strpbrk(temp, " \t");
+> 
+> #include <strings.h> /* 非C/C++标准库中的头文件，只在Linux中提供，相当于windows平台的stricmp */
+> int strcasecmp(const char *s1, const char *s2);
+> /*
+> 忽略大小写地比较字符串，相等返回0，s1大于s2只返回大于0的值，s1小于s2只返回小于0的值（即最后比较字符的差值）。
+> */
+> 
+> int strncasecmp(const char *s1, const char *s2, size_t n);
+> /*
+> 字符串s1和s2自左向右比较n个字符，且忽略英文字母的大小，直至比较字符不同或比较完前n个字符或遍历完某一字符串。
+> */
+> //eg:
+> strcasecmp(url, "http://", 7);
+> 
+> #include <string.h>
+> char* strchr(const char *str, int c);
+> /*
+> 在str字符串中搜索第一次出现字符c的位置。
+> 返回一个指向该字符串中第一次出现的字符的指针，如果不包含该字符则返回NULL空指针。
+> */
+> ```
+
+
 
 ## 3.7 提高服务器性能的其他建议
 
@@ -4796,7 +5166,7 @@
 >   	shmatt_t shm_nattach;	/* 目前关联到此共享内存的进程数量 */
 >   	/* 省略一些填充字段 */
 >   };
->           
+>               
 >   /* 该结构体用于描述IPC对象（信号量、共享内存和消息队列）的权限 */
 >   struct ipc_perm
 >   {
@@ -6261,4 +6631,1870 @@
 
 # 10 进程池和线程池
 
+> ​	在前面的章节中，我们是通过动态创建子进程（或子线程）来实现并发服务器的。这样做有如下缺点：
+>
+> * 动态创建进程（或线程）是比较耗费时间的，这将导致比较慢的客户响应。
+>
+> * 动态创建的子进程（或子线程）通常只用来为一个客户服务（除非我们做特殊的处理），这将导致系统产生大量的细微进程（或线程）。进程（或线程）间的切换将消耗大量CPU时间。
+>
+> * 动态创建的子进程是当前进程的完整映像。当前进程必须谨慎地管理其分配的文件描述符和堆内存等系统资源，否则子进程可能复制这些资源，从而使系统的可用资源急剧下降，进而影响服务器的性能。
+>
+>   第3章介绍过的进程池和线程池可以解决上述问题。
+
+## 10.1 进程池和线程池概述
+
+> ​	进程池和线程池相似，所以这里我们只以进程池为例进行介绍。如没有特殊声明，下面对进程池的讨论完全适用于线程池。
+>
+> ​	进程池是由服务器预先创建的一组子进程，这些子进程的数目在3~10个之间（当然，这只是典型情况）。比如8.5.5小节所描述的，httpd守护进程就是使用包含7个子进程的进程池来实现并发的。线程池的线程数量应该和CPU数量差不多。
+>
+> ​	进程池中所有子进程都运行着相同的代码，并具有相同的属性，比如优先级、PGID等。因为进程池在服务器启动之初就创建好了，所以每个子进程都相对“干净”，即它们没有打开不必要的文件描述符（从父进程继承而来），也不会错误地使用大块的对内存（从父进程复制得到）。
+>
+> ​	当有新的任务到来时，主进程将通过某种方式选择进程池中的某一个子进程来为之服务。相比于动态创建子进程，选择一个已经存在的子进程子进程的代价显然要小得多。至于主进程选择哪个子进程来为新任务服务，则有两种方式：
+>
+> * 主进程使用某种算法来主动选择子进程。最简单、最常用的算法是随机算法和Round Robin（轮流选取）算法，但更优秀、更智能的算法将使任务在各个工作进程中更均匀地分配，从而减轻服务器的整体压力。
+> * 主进程和所有子进程通过一个共享的工作队列来同步，子进程都睡眠在该工作队列上。当有新的任务到来时，主进程将任务添加到工作队列中。这将唤醒正在等待任务的子进程，不过只有一个子进程将获得新任务的“接管权”，它可以从工作队列中取出任务并执行之，而其他的子进程将继续睡眠在工作队列上。
+>
+>   当选好子进程后，主进程还需要使用某种通知机制来告诉目标子进程有新任务需要处理，并传递必要的数据。最简单的方法是，在父进程和子进程之间预先建立好一条管道，然后通过该管道来实现所有的进程间通信（当然，要预先定义好一套协议来规范管道的使用）。在父线程和子线程之间传递数据就要简单得多，因为我们可以把这些数据定义为全局的，那么它们本身就是被所有线程共享的。
+>
+> ​	综合上面的论述，我们将进程池的一般模型描绘为下图所示的形式。
+>
+> ![image-20230517123320719](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230517123320719.png)
+
+## 10.2 多处理客户
+
+> ​	在使用进程池处理多客户任务时，首先要考虑的一个问题是：**监听socket和连接socket是否都由主进程来统一管理**。回忆第3章中介绍的几种并发模式，**其中半同步/半反应堆模式是由主进程统一管理这两种socket的**；而图3-11所示的**半同步/半异步模式，以及领导者/追随者模式，则是由主进程管理所有监听socket，而各个主进程分别管理属于自己的连接socket的**。对于前一种情况，主进程接受新的连接以得到连接socket，然后它需要将该socket传递给子进程（对于线程池而言，父进程将socket传递给子进程是很简单的，因为它们可以很容易地共享该socket。但对于进程池而言，我们必须使用8.9节介绍的方法来传递socket)。后一种情况的灵活性更大一些，因为子进程可以自己调用accept来接受新的连接，**这样父进程就无须向子进程传递socket，而只需要地通知一声：“我检测到了新的连接，你来接受它。”**
+>
+> ​	在（4.6.1）小节中我们讨论过常连接，即一个客户的多次请求可以复用一个TCP连接。那么，在设计进程池时还需要考虑：一个客户连接上的所有任务是否由一个子进程来处理。<font color=green><b>如果说客户任务是无状态的，那么我们可以考虑使用不同的子进程来为该客户的不同请求服务</b></font>，如下图所示。
+>
+> ![image-20230517125805238](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230517125805238.png)
+>
+> ​	但如果客户任务是存在上下文关系的，则最好一直用同一个子进程来为之服务，否则实现起来将比较麻烦，因为我们不得不在各子进程之间传递上下文数据。在4.3.4小节中，我们讨论了epoll的EPOLLONESHOT事件，这一事件能够确保一个客户连接在整个生命周期中仅被一个线程处理。
+
+## 10.3 半同步/半异步进程池实现
+
+> ​	综合前面的讨论，本节我们实现一个基于图8-11所示的半同步/半异步并发模式的进程池，如以下代码所示。为了避免在父、子进程之间传递文件描述符，我们将接受新连接的操作放到子进程中。很显然，对于这种模式而言，一个客户连接上的所有任务始终是由一个子进程来处理的。
+>
+> ````c++
+> #ifndef PROCESSPOOL_H
+> #define PROCESSPOOL_H
 > 
+> #include <sys/types.h>
+> #include <sys/socket.h>
+> #include <netinet/in.h>
+> #include <arpa/inet.h>
+> #include <assert.h>
+> #include <stdio.h>
+> #include <unistd.h>
+> #include <errno.h>
+> #include <string.h>
+> #include <fcntl.h>
+> #include <stdlib.h>
+> #include <sys/epoll.h>
+> #include <signal.h>
+> #include <sys/wait.h>
+> #include <sys/stat.h>
+> 
+> /* 描述一个子进程的类，m_pid是目标子进程 */
+> class process
+> {
+> public:
+>     process() : m_pid(-1){}
+> public:
+>     pid_t m_pid;
+>     int m_pipefd[2];
+> };
+> 
+> /* 进程池类，将它定义为模板类是为了代码复用。其模板参数是处理逻辑任务的类 */
+> template <typename T>
+> class processpool
+> {
+> private:
+>     /* 将构造函数定义为私有，因此我们只能通过后面的create静态函数来创建processpool实例 */
+>     processpool(int listenfd, int process_number = 8);
+> public:
+>     /* 单体模式，以保证程序最多创建一个processpool实例，这是程序正确处理信号的必要条件 */
+>     static processpool<T>* create(int listenfd, int process_number = 8)
+>     {
+>         if(!m_instance)
+>         {
+>             m_instance = new processpool<T>(listenfd, process_number);
+>         }
+>         return m_instance;
+>     }
+>     ~processpool()
+>     {
+>         delete [] m_sub_process;
+>     }
+>     /* 启动进程池 */
+>     void run();
+> private:
+>     void setup_sig_pipe();
+>     void run_parent();
+>     void run_child();
+> private:
+>     /* 进程池允许的最大子进程数量 */
+>     static const int MAX_PROCESS_NUMBER = 16;
+>     /* 每个子进程最多能处理的客户数量 */
+>     static const int USER_PER_PROCESS = 65536;
+>     /* epoll 最多能处理的事件数 */
+>     static const int MAX_EVENT_NUMBER = 10000;
+>     /* 进程池中的进程总数 */
+>     int m_process_number;
+>     /* 子进程在池中的序号，从0开始 */
+>     int m_idx;
+>     /* 每个进程都有一个epoll内核事件表，用m_epollfd标识 */
+>     int m_epollfd;
+>     /* 监听socket */
+>     int m_listenfd;
+>     /* 子进程通过m_stop来决定是否停止运行 */
+>     int m_stop;
+>     /* 保存所有子进程的描述信息 */
+>     process* m_sub_process;
+>     /* 进程池静态实例 */
+>     static processpool<T>* m_instance;
+> };
+> 
+> template<typename T>
+> processpool<T>* processpool<T>::m_instance = NULL;
+> 
+> /* 用于处理信号的管道，以实现统一事件源，后面称之为信号管道 */
+> static int sig_pipefd[2];
+> 
+> static int setnonblocking(int fd)
+> {
+>     int old_option = fcntl(fd, F_GETFL);
+>     int new_option = old_option | O_NONBLOCK;
+>     fcntl(fd, F_SETFL, new_option);
+>     return old_option;
+> }
+> 
+> static void addfd(int epollfd, int fd)
+> {
+>     epoll_event event;
+>     event.data.fd = fd;
+>     event.events = EPOLLIN | EPOLLET;
+>     epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event);
+>     setnonblocking(fd);
+> }
+> 
+> /* 从epollfd标识的epoll内核事件表中删除fd上的所有注册事件 */
+> static void removefd(int epollfd, int fd)
+> {
+>     epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, 0);
+>     close(fd);
+> }
+> 
+> static void sig_handler(int sig)
+> {
+>     int save_errno = errno;
+>     int msg = sig;
+>     send(sig_pipefd[1], (char*)&msg, 1, 0);
+>     errno = save_errno;
+> }
+> 
+> static void addsig(int sig, void (handler)(int), bool restart=true)
+> {
+>     struct sigaction sa;
+>     memset(&sa, '\0', sizeof(sa));
+>     sa.sa_handler = handler;
+>     if(restart)
+>     {
+>         sa.sa_flags |= SA_RESTART;
+>     }
+>     sigfillset(&sa.sa_mask);
+>     assert(sigaction(sig, &sa, NULL) != -1);
+> }
+> 
+> /* 进程池构造函数，参数listenfd是监听socket，它必须在创建进程池之前被创建，否则子进程无法引用它。参数process_number
+> 指定进程池中子进程的数量 */
+> template<typename T>
+> processpool<T>::processpool(int listenfd, int process_number) : m_listenfd(listenfd), m_process_number(process_number),
+> m_idx(-1), m_stop(false)
+> {
+>     assert((process_number > 0) && (process_number <= MAX_PROCESS_NUMBER));
+>     m_sub_process = new process[process_number];
+>     assert(m_sub_process);
+> 
+>     /* 创建process_number个子进程，并建立它们和父进程之间的管道 */
+>     for(int i = 0; i < process_number; ++i)
+>     {
+>         int ret = socketpair(PF_UNIX, SOCK_STREAM, 0, m_sub_process[i].m_pipefd);
+>         assert(ret == 0);
+> 
+>         m_sub_process[i].m_pid = fork();
+>         assert(m_sub_process[i].m_pid >= 0);
+>         if(m_sub_process[i].m_pid > 0)
+>         {
+>             close(m_sub_process[i].m_pipefd[1]);
+>             continue;
+>         }
+>         else
+>         {
+>             close(m_sub_process[i].m_pipefd[0]);
+>             m_idx = i;
+>             break;
+>         }
+>     }
+> }
+> 
+> /* 统一事件源 */
+> template<typename T>
+> void processpool<T>::setup_sig_pipe()
+> {
+>     /* 创建epoll事件监听表和信号管道 */
+>     m_epollfd = epoll_create(5);
+>     assert(m_epollfd != -1);
+> 
+>     int ret = socketpair(PF_UNIX, SOCK_STREAM, 0, sig_pipefd);
+>     assert(ret != -1);
+> 
+>     setnonblocking(sig_pipefd[1]);
+>     addfd(m_epollfd, sig_pipefd[0]);
+> 
+>     /* 设置信号处理函数 */
+>     addsig(SIGCHLD, sig_handler);
+>     addsig(SIGTERM, sig_handler);
+>     addsig(SIGINT, sig_handler);
+>     addsig(SIGPIPE, SIG_IGN);
+> }
+> 
+> /* 父进程中m_idx值为-1，子进程中m_idx值大于等于0，我们据此判断接下来要运行的是父进程代码还是子进程代码 */
+> template<typename T>
+> void processpool<T>::run()
+> {
+>     if(m_idx != -1)
+>     {
+>         run_child();
+>         return ;
+>     }
+>     run_parent();
+> }
+> 
+> template<typename T>
+> void processpool<T>::run_child()
+> {
+>     setup_sig_pipe();
+> 
+>     /* 每个子进程都通过其在进程池中的序号值m_idx找到与父进程通信的管道 */
+>     int pipefd = m_sub_process[m_idx].m_pipefd[1];
+>     /* 子进程需要监听管道文件描述符pipefd，因为父进程将通过它来通知进程accept新连接 */
+>     addfd(m_epollfd, pipefd);
+> 
+>     epoll_event events[MAX_EVENT_NUMBER];
+>     T* users = new T[USER_PER_PROCESS];
+>     assert(users);
+>     int number = 0;
+>     int ret = -1;
+> 
+>     while(!m_stop)
+>     {
+>         number = epoll_wait(m_epollfd, events, MAX_EVENT_NUMBER, -1);
+>         if((number < 0) && (errno != EINTR))
+>         {
+>             printf("epoll failure\n");
+>             break;
+>         }
+> 
+>         for(int i = 0; i < number; i++)
+>         {
+>             int sockfd = events[i].data.fd;
+>             if((sockfd == pipefd) && (events[i].events & EPOLLIN))
+>             {
+>                 int client = 0;
+>                 /* 从父、子进程之间的管道读取数据，并将结果保存在变量client中。如果读
+>                 取成功，则表示有新客户连接到来 */
+>                 ret = recv(sockfd, (char*)&client, sizeof(client), 0);
+>                 if(((ret < 0) && (errno != EAGAIN)) || ret == 0)
+>                 {
+>                     continue;
+>                 }
+>                 else
+>                 {
+>                     struct sockaddr_in client_address;
+>                     socklen_t client_addrlength = sizeof(client_address);
+>                     int connfd = accept(m_listenfd, (struct sockaddr*)&client_address, &client_addrlength);
+>                     if(connfd < 0)
+>                     {
+>                         printf("errno is: %d\n", errno);
+>                         continue;
+>                     }
+>                     addfd(m_epollfd, connfd);
+>                     /* 模板类T必须实现init方法，以初始化一个客户连接，我们直接使用connfd来索引逻辑处理对象
+>                     （T类型的对象），以提高程序效率 */
+>                     users[connfd].init(m_epollfd, connfd, client_address);
+>                 }
+>             }
+>             /* 下面处理子进程接收到的信号 */
+>             else if((sockfd == sig_pipefd[0]) && (events[i].events & EPOLLIN))
+>             {
+>                 int sig;
+>                 char signals[1024];
+>                 ret = recv(sig_pipefd[0], signals, sizeof(signals), 0);
+>                 if(ret <= 0)
+>                 {
+>                     continue;
+>                 }
+>                 else
+>                 {
+>                     for(int i = 0; i < ret; ++i)
+>                     {
+>                         switch(signal[i])
+>                         {
+>                             case SIGCHLD:
+>                             {
+>                                 pid_t pid;
+>                                 int stat;
+>                                 while((pid = waitpid(-1, &stat, WNOHANG)) > 0)
+>                                 {
+>                                     continue;
+>                                 }
+>                                 break;
+>                             }
+>                             case SIGTERM:
+>                             case SIGINT:
+>                             {
+>                                 m_stop = true;
+>                                 break;
+>                             }
+>                             default:
+>                             {
+>                                 break;
+>                             }
+>                         }
+>                     }
+>                 }
+>             }
+>             /* 如果是其它可读数据，那么必然是客户端请求到来。调用逻辑处理对象的process方法处理之 */
+>             else if(events[i].events & EPOLLIN)
+>             {
+>                 users[sockfd].process();
+>             }
+>             else
+>             {
+>                 continue;
+>             }
+>         }
+>     }
+> 
+>     delete [] users;
+>     users = NULL;
+>     close(pipefd);
+>     close(m_listenfd); 
+>     close(m_epollfd);
+> }
+> 
+> template<typename T>
+> void processpool<T>::run_parent()
+> {
+>     setup_sig_pipe();
+> 
+>     /* 父进程监听m_listenfd */
+>     addfd(m_epollfd, m_listenfd);
+> 
+>     epoll_event events[MAX_EVENT_NUMBER];
+>     int sub_process_counter = 0;
+>     int new_conn = 1;
+>     int number = 0;
+>     int ret  = -1;
+>     while(!m_stop)
+>     {
+>         number = epoll_wait(m_epollfd, events, MAX_EVENT_NUMBER, -1);
+>         if((number < 0) && (errno != EINTR))
+>         {
+>             printf("epoll failure\n");
+>             break;
+>         }
+>         for(int i = 0; i < number; i++)
+>         {
+>             int sockfd = events[i].data.fd;
+>             if(sockfd == m_listenfd)
+>             {
+>                 /* 如果有新连接到来，就采用Round Roin方式将其分配给一个子进程处理 */
+>                 int i = sub_process_counter;
+>                 do
+>                 {
+>                     if(m_sub_process[i].m_pid != -1)
+>                     {
+>                         break;
+>                     }
+>                     i = (i + 1) % m_process_number;
+>                 } while (i != sub_process_counter);
+>                 
+>                 if(m_sub_process[i].m_pid == -1)
+>                 {
+>                     m_stop = true;
+>                     break;
+>                 }
+>                 sub_process_counter = (i + 1) % m_process_number;
+>                 send(m_sub_process[i].m_pipefd[0], (char*)&new_conn, sizeof(new_conn), 0);
+>                 printf("send request to child %d\n", i);
+>             }
+>             /* 下面处理父进程收到的信号 */
+>             else if((sockfd == sig_pipefd[0]) && (events[i].events & EPOLLIN))
+>             {
+>                 int sig;
+>                 char signals[1024];
+>                 ret = recv(sig_pipefd[0], signals, sizeof(signals), 0);
+>                 if(ret <= 0)
+>                 {
+>                     continue;
+>                 }
+>                 else
+>                 {
+>                     for(int i = 0; i < ret; ++i)
+>                     {
+>                         switch(signal[i])
+>                         {
+>                             case SIGCHLD:
+>                             {
+>                                 pid_t pid;
+>                                 int stat;
+>                                 while((pid = waitpid(-1, &stat, WNOHANG)) > 0)
+>                                 {
+>                                     for(int i = 0; i < m_process_number; ++i)
+>                                     {
+>                                         /* 如果进程池中第i个子进程退出了，则主进程关闭
+>                                         相应的通信管道，并设置相应的m_pid为-1，以标记该子进程已经退出 */
+>                                         if(m_sub_process[i].m_pid == pid)
+>                                         {
+>                                             printf("child %d join\n", i);
+>                                             close(m_sub_process[i].m_pipefd[0]);
+>                                             m_sub_process[i].m_pid = -1;
+>                                         }
+>                                     }
+>                                 }
+>                                 /* 如果子进程都已经退出了，则父进程也退出 */
+>                                 m_stop = true;
+>                                 for(int i = 0; i < m_process_number; ++i)
+>                                 {
+>                                     if(m_sub_process[i].m_pid != -1)
+>                                     {
+>                                         m_stop = false;
+>                                     }
+>                                 }
+>                                 break;
+>                             }
+>                             case SIGTERM:
+>                             case SIGINT:
+>                             {
+>                                 /* 如果父进程接收到终止信号，那么就杀死所有子进程，并等待它们全部结束。
+>                                 当然，通知子进程结束更好方法是向父、子进程之间的通信管道发送特殊数据 */
+>                                 printf("kill all the chlid now\n");
+>                                 for(int i = 0; i < m_process_number; ++i)
+>                                 {
+>                                     int pid = m_sub_process[i].m_pid;
+>                                     if(pid != -1)
+>                                     {
+>                                         kill(pid, SIGTERM);
+>                                     }
+>                                 }
+>                                 break;
+>                             }
+>                             default:
+>                             {
+>                                 break;
+>                             }
+>                         }
+>                     }
+>                 }
+>             }
+>             else
+>             {
+>                 continue;
+>             }
+>         }
+>     }
+>     close(m_listenfd);  /* 由创建者关闭这个文件描述符 */
+>     close(m_epollfd);
+> }
+> 
+> #endif
+> ````
+
+## 10.4 用进程池实现简单CGI服务器
+
+> 回忆1.2节，我们曾实现过一个非常简单的CGI服务器。下面我们将利用前面介绍的进程池来重新实现一个并发的CGI服务器，代码如下所示：
+>
+> ```cpp
+> #include <sys/types.h>
+> #include <sys/socket.h>
+> #include <netinet/in.h>
+> #include <arpa/inet.h>
+> #include <assert.h>
+> #include <stdio.h>
+> #include <unistd.h>
+> #include <errno.h>
+> #include <string.h>
+> #include <fcntl.h>
+> #include <stdlib.h>
+> #include <sys/epoll.h>
+> #include <signal.h>
+> #include <sys/wait.h>
+> #include <sys/stat.h>
+> 
+> #include "processpool.h"
+> 
+> /* 用于处理客户CGI请求的类，它可以作为processpool类的模板参数 */
+> class cgi_conn
+> {
+> public:
+>     cgi_conn(){}
+>     ~cgi_conn(){}
+>     /* 初始化客户连接，清空读缓冲区 */
+>     void init(int epollfd, int sockfd, const sockaddr_in& client_addr)
+>     {
+>         m_epollfd = epollfd;
+>         m_sockfd = sockfd;
+>         m_address = client_addr;
+>         memset(m_buf, '\0', BUFFER_SIZE);
+>         m_read_idx = 0;
+>     }
+> 
+>     void process()
+>     {
+>         int idx = 0;
+>         int ret = -1;
+>         /* 循环读取和分析客户数据 */
+>         while(true)
+>         {
+>             idx = m_read_idx;
+>             ret = recv(m_sockfd, m_buf + idx, BUFFER_SIZE-1-idx, 0);
+>             /* 如果读操作发生错误，则关闭客户连接。但如果是暂时无数据可读，则退出循环 */
+>             if(ret < 0)
+>             {
+>                 if(errno != EAGAIN)
+>                 {
+>                     removefd(m_epollfd, m_sockfd);
+>                 }
+>                 break;
+>             }
+>             /* 如果对方关闭连接，则服务器也关闭连接 */
+>             else if(ret == 0)
+>             {
+>                 removefd(m_epollfd, m_sockfd);
+>                 break;
+>             }
+>             else
+>             {
+>                 m_read_idx += ret;
+>                 printf("user content is: %s\n", m_buf);
+>                 /* 如果遇到字符"\r\n"，则开始处理客户请求 */
+>                 for(; idx < m_read_idx; ++idx)
+>                 {
+>                     if((idx >= 1) && (m_buf[idx-1]=='\r') && (m_buf[idx] == '\n'))
+>                     {
+>                         break;
+>                     }
+>                 }
+>                 /* 如果没有遇到字符"\r\n"，则需要读取更多的客户数据 */
+>                 if(idx == m_read_idx)
+>                 {
+>                     continue;
+>                 }
+>                 /*开始处理客户请求，"\r\n\0" ==> " "\0\n\0"*/
+>                 m_buf[idx-1] = '\0';
+> 
+>                 char* file_name = m_buf;
+>                 /* 判断客户要运行的CGI程序是否存在 */
+>                 if(access(file_name, F_OK) == -1)
+>                 {
+>                     removefd(m_epollfd, m_sockfd);
+>                     break;
+>                 }
+>                 /* 创建子进程来执行CGI程序 */
+>                 ret = fork();
+>                 if(ret == -1)
+>                 {
+>                     removefd(m_epollfd, m_sockfd);
+>                     break;
+>                 }
+>                 else if(ret > 0)
+>                 {
+>                     /* 父进程只需关闭连接 */
+>                     removefd(m_epollfd, m_sockfd);
+>                     break;
+>                 }
+>                 else
+>                 {
+>                     /* 子进程将标准输出重定向到m_sockfd，并执行CGI程序 */
+>                     close(STDOUT_FILENO);
+>                     dup(m_sockfd);
+>                     execl(m_buf, m_buf, NULL);
+>                     exit(0);
+>                 }
+>             }
+>         }
+>     }
+> private:
+>     /* 读缓冲区的大小 */
+>     static const int BUFFER_SIZE = 1024;
+>     static int m_epollfd;
+>     int m_sockfd;
+>     sockaddr_in m_address;
+>     char m_buf[BUFFER_SIZE];
+>     /* 标记读缓冲区已经读入的客户数据的最后一个字节的下一个位置 */
+>     int m_read_idx;
+> };
+> int cgi_conn::m_epollfd = -1;
+> 
+> /* 主函数 */
+> int main(int argc, char* argv[])
+> {
+>     if(argc <= 2)
+>     {
+>         printf("usage: %s ip_address port_number\n", basename(argv[0]));
+>         return 1;
+>     }
+>     const char* ip = argv[1];
+>     int port = atoi(argv[2]);
+> 
+>     int listenfd = socket(PF_INET, SOCK_STREAM, 0);
+>     assert(listenfd >= 0);
+> 
+>     int ret = 0;
+>     struct sockaddr_in address;
+>     bzero(&address, sizeof(address));
+>     address.sin_family = AF_INET;
+>     inet_pton(AF_INET, ip, &address.sin_addr);
+>     address.sin_port = htons(port);
+> 
+>     ret = bind(listenfd, (struct sockaddr*)&address, sizeof(address));
+>     assert(ret != -1);
+> 
+>     ret = listen(listenfd, 5);
+>     assert(ret != -1);
+> 
+>     processpool<cgi_conn>* pool = processpool<cgi_conn>::create(listenfd);
+>     if(pool)
+>     {
+>         pool->run();
+>         delete pool;
+>     }
+>     close(listenfd);
+>     return 0;
+> }
+> ```
+
+## 10.5 半同步/半反应堆线程池实现
+
+> ​	本节我们实现一个基于图8-10所示的半同步/半反应堆并发模式的线程池，如以下代码所示。相比上章节的进程池实现，该线程的通用性要高很多，因为它使用一个工作队列完全解除了主线程和工作线程的耦合关系：主线程往工作队列中插入任务，工作线程通过竞争来取得任务并执行它。不过，如果要将该线程池应用到1实际服务器程序中，那么我们必须保证所有客户请求都是无状态的，因为同一个连接上的不同请求可能会由不同的线程处理。
+>
+> ```c++
+> ```
+>
+> ​	值得一提的是，在C++程序中使用`pthread_create`函数时，该函数的第3个参数必须指向一个静态函数。而要在一个静态函数中使用类的动态成员（包括成员函数和成员变量），则只能通过如下两种方式来实现：
+>
+> * 通过类的静态对象来调用。比如单体模式中，静态函数可以通过类的全局唯一实例来访问动态成员函数。
+>
+> * 将类的对象作为参数传递给该静态函数，然后在静态函数中引用这个对象，并调用其动态方法。
+>
+>   代码中使用的是第2种方式：将线程参数设置为this指针，然后在worker函数中获取该指针并调用其动态方法`run`。
+
+## 10.6 用线程池实现的简单Web服务器
+
+> ​	在8.6节中，我们曾使用有限状态机实现过一个非常简单的解析HTTP请求的服务器。下面我们将利用前面介绍的线程池来重新实现一个并发的Web服务器。
+
+### 10.6.1 http_conn类
+
+> ​	首先，我们需要准备线程池的模板参数类，用以封装多逻辑任务的处理。这个类是http_conn.
+>
+> http_conn.h
+>
+> ```c++
+> #ifndef HTTPCONNECTION_H
+> #define HTTPCONNECTION_H
+> 
+> #include <unistd.h>
+> #include <signal.h>
+> #include <sys/types.h>
+> #include <sys/epoll.h>
+> #include <fcntl.h>
+> #include <sys/socket.h>
+> #include <netinet/in.h>
+> #include <arpa/inet.h>
+> #include <assert.h>
+> #include <sys/stat.h>
+> #include <string.h>
+> #include <pthread.h>
+> #include <stdio.h>
+> #include <stdlib.h>
+> #include <sys/mman.h>
+> #include <stdarg.h>
+> #include <errno.h>
+> #include <sys/uio.h>
+> #include "locker.h"
+> 
+> class http_conn {
+> public:
+>     /* 文件名的最大长度 */
+>     static const int FILENAME_LEN = 200;
+>     /* 读缓冲区的大小 */
+>     static const int READ_BUFFER_SIZE = 2048;
+>     /* 写缓冲区的大小 */
+>     static const int WRITE_BUFFER_SIZE = 1024;
+>     /* HTTP请求方法，但我们仅支持GET */
+>     enum METHOD {
+>         GET = 0 , POST , HEAD , PUT , DELETE ,
+>         TRACE , OPTIONS , CONNECT , PATCH
+>     };
+>     /* 解析客户请求时，主状态机所处的状态 */
+>     enum CHECK_STATE {
+>         CHECK_STATE_REQUESTLINE = 0 ,
+>         CHECK_STATE_HEADER ,
+>         CHECK_STATE_CONTENT
+>     };
+>     /* 服务器处理HTTP请求的可能结果 */
+>     enum HTTP_CODE {
+>         NO_REQUEST , GET_REQUEST , BAD_REQUEST ,
+>         NO_RESOURCE , FORBIDDEN_REQUEST , FILE_REQUEST ,
+>         INTERNAL_ERROR , CLOSED_CONNECTION
+>     };
+> 
+>     /* 行的读取状态 */
+>     enum LINE_STATUS {
+>         LINE_OK = 0 ,
+>         LINE_BAD ,
+>         LINE_OPEN
+>     };
+> 
+> public:
+>     http_conn() {}
+>     ~http_conn() {}
+> 
+> public:
+>     /* 初始化新接受的连接 */
+>     void init( int sockfd , const sockaddr_in& addr );
+>     /* 关闭连接 */
+>     void close_conn( bool real_close = true );
+>     /* 处理客户请求 */
+>     void process();
+>     /* 非阻塞读操作 */
+>     bool read();
+>     /* 非阻塞写操作 */
+>     bool write();
+> 
+> private:
+>     /* 初始化连接 */
+>     void init();
+>     /* 解析HTTP请求 */
+>     HTTP_CODE process_read();
+>     /* 填充HTTP应答 */
+>     bool process_write( HTTP_CODE ret );
+> 
+>     /* 下面这一组函数被process_read调用以分析HTTP请求 */
+>     HTTP_CODE parse_request_line( char* text );
+>     HTTP_CODE parse_headers( char* text );
+>     HTTP_CODE parse_content( char* text );
+>     HTTP_CODE do_request();
+>     char* get_line() { return m_read_buf + m_start_line; }
+>     LINE_STATUS parse_line();
+> 
+>     /* 下面这一组函数被process_write调用以填充HTTP应答 */
+>     void unmap();
+>     bool add_response( const char* format , ... );
+>     bool add_content( const char* content );
+>     bool add_status_line( int status , const char* title );
+>     bool add_headers( int content_length );
+>     bool add_content_length( int content_length );
+>     bool add_linger();
+>     bool add_blank_line();
+> public:
+>     /* 所有socket上的事件都被注册到同一个epoll内核事件表中，所以将epoll文件描述符设置为静态的 */
+>     static int m_epollfd;
+>     /* 统计用户数量 */
+>     static int m_user_count;
+> 
+> private:
+>     /* 该HTTP连接的socket和对方的socket地址 */
+>     int m_sockfd;
+>     sockaddr_in m_address;
+> 
+>     /* 读缓冲区 */
+>     char m_read_buf[READ_BUFFER_SIZE];
+>     /* 标识读缓冲区中已经读入的客户数据的最后一个字节的下一个位置 */
+>     int m_read_idx;
+>     /* 当前正在分析的字符在读缓冲区中的位置 */
+>     int m_checked_idx;
+>     /* 当前正在解析的行的起始位置 */
+>     int m_start_line;
+>     /* 写缓冲区 */
+>     char m_write_buf[WRITE_BUFFER_SIZE];
+>     /* 写缓冲区中待发送的字节数 */
+>     int m_write_idx;
+> 
+>     /* 主状态机当前所处的状态 */
+>     CHECK_STATE m_check_state;
+>     /* 请求方法 */
+>     METHOD m_method;
+> 
+>     /* 客户请求的目标文件的完整路径，其内容等于doc_root + m_url，doc_root是网站根目录 */
+>     char m_real_file[FILENAME_LEN];
+>     /* 客户请求的目标文件的文件名 */
+>     char* m_url;
+>     /* HTTP协议版本号，我们仅支持HTTP/1.1 */
+>     char* m_version;
+>     /* 主机名 */
+>     char* m_host;
+>     /* HTTP请求的消息体的长度 */
+>     int m_content_length;
+>     /* HTTP请求是否要求保持连接 */
+>     bool m_linger;
+> 
+>     /* 客户请求的目标文件被mmap到内存的起始位置 */
+>     char* m_file_address;
+>     /* 目标文件的状态。通过它我们可以判断文件是否存在、是否为目录，是否可读，
+>     并获取文件大小等信息 */
+>     struct stat m_file_stat;
+>     /* 我们将采用writev来执行写操作，所以定义下面两个成员，其中m_iv_count表示被写内存块的数量 */
+>     struct iovec m_iv[2];
+>     int m_iv_count;
+> };
+> 
+> #endif 
+> ```
+>
+> http_conn.cpp
+>
+> ```c++
+> #include "http_conn.h"
+> 
+> /* 定义HTTP响应的一些状态信息 */
+> const char* ok_200_title = "OK";
+> const char* error_400_title = "Bad Request";
+> const char* error_400_form = "Your request has bad syntax or is inherently impossible to satisfy.\n";
+> const char* error_403_title = "Forbidden";
+> const char* error_403_form = "You do not have permission to get file from this server.\n";
+> const char* error_404_title = "Not Found";
+> const char* error_404_form = "The requested file was not found on this server.\n";
+> const char* error_500_title = "Internal Error";
+> const char* error_500_form = "There was an unusual problem serving the requested file.\n";
+> /* 网站的根目录 */
+> const char* doc_root = "/var/www/html";
+> 
+> int setnonblocking( int fd ) {
+>     int old_option = fcntl( fd , F_GETFL );
+>     int new_option = old_option | O_NONBLOCK;
+>     fcntl( fd , F_SETFL , new_option );
+>     return old_option;
+> }
+> 
+> void addfd( int epollfd , int fd , bool one_shot ) {
+>     epoll_event event;
+>     event.data.fd = EPOLLIN | EPOLLET | EPOLLRDHUP;
+>     if (one_shot)
+>     {
+>         event.events |= EPOLLONESHOT;
+>     }
+>     epoll_ctl( epollfd , EPOLL_CTL_ADD , fd , &event );
+>     setnonblocking( fd );
+> }
+> 
+> void removefd( int epollfd , int fd ) {
+>     epoll_ctl( epollfd , EPOLL_CTL_DEL , fd , 0 );
+>     close( fd );
+> }
+> 
+> void modfd( int epollfd , int fd , int ev ) {
+>     epoll_event event;
+>     event.data.fd = fd;
+>     event.events = ev | EPOLLET | EPOLLONESHOT | EPOLLRDHUP;
+>     epoll_ctl( epollfd , EPOLL_CTL_MOD , fd , &event );
+> }
+> 
+> int http_conn::m_user_count = 0;
+> int http_conn::m_epollfd = -1;
+> 
+> void http_conn::close_conn( bool real_close ) {
+>     if (real_close && ( m_sockfd != -1 )) {
+>         removefd( m_epollfd , m_sockfd );
+>         m_sockfd = -1;
+>         m_user_count--; /* 关闭一个连接时，将客户总量减1 */
+>     }
+> }
+> 
+> void http_conn::init( int sockfd , const sockaddr_in& addr ) {
+>     m_sockfd = sockfd;
+>     m_address = addr;
+>     /* 如下两行是为了避免TIME_WAIT状态，仅用于调试，实际使用时应该去除 */
+>     int reuse = 1;
+>     setsockopt( m_sockfd , SOL_SOCKET , SO_REUSEADDR , &reuse , sizeof( reuse ) );
+>     addfd( m_epollfd , sockfd , true );
+>     m_user_count++;
+> 
+>     init();
+> }
+> 
+> void http_conn::init() {
+>     m_check_state = CHECK_STATE_REQUESTLINE;
+>     m_linger = false;
+> 
+>     m_method = GET;
+>     m_url = 0;
+>     m_version = 0;
+>     m_content_length = 0;
+>     m_host = 0;
+>     m_start_line = 0;
+>     m_checked_idx = 0;
+>     m_read_idx = 0;
+>     m_write_idx = 0;
+>     memset( m_read_buf , '\0' , READ_BUFFER_SIZE );
+>     memset( m_write_buf , '\0' , WRITE_BUFFER_SIZE );
+>     memset( m_real_file , '\0' , FILENAME_LEN );
+> }
+> 
+> /* 主状态机， 其分析参考8.6节 */
+> http_conn::LINE_STATUS http_conn::parse_line() {
+>     char temp;
+>     for (; m_checked_idx < m_read_idx; ++m_checked_idx) {
+>         temp = m_read_buf[m_checked_idx];
+>         if (temp == '\r') {
+>             if (( m_checked_idx + 1 ) == m_read_idx) {
+>                 return LINE_OPEN;
+>             }
+>             else if (m_read_buf[m_checked_idx + 1] == '\n') {
+>                 m_read_buf[m_checked_idx++] = '\0';
+>                 m_read_buf[m_checked_idx++] = '\0';
+>                 return LINE_OK;
+>             }
+>             return LINE_BAD;
+>         }
+>         else if (temp == '\n') {
+>             if (( m_checked_idx > 1 ) && ( m_read_buf[m_checked_idx - 1] == '\r' )) {
+>                 m_read_buf[m_checked_idx - 1] = '\0';
+>                 m_read_buf[m_checked_idx++] = '\0';
+>                 return LINE_OK;
+>             }
+>             return LINE_BAD;
+>         }
+>     }
+> 
+>     return LINE_OPEN;
+> }
+> 
+> /* 循环读取客户数据，直到无数据可读或者对方关闭连接 */
+> bool http_conn::read() {
+>     if (m_read_idx >= READ_BUFFER_SIZE) {
+>         return false;
+>     }
+> 
+>     int bytes_read = 0;
+>     while (true) {
+>         bytes_read = recv( m_sockfd , m_read_buf + m_read_idx , READ_BUFFER_SIZE - m_read_idx , 0 );
+>         if (bytes_read == -1) {
+>             if (errno == EAGAIN || errno == EWOULDBLOCK) {
+>                 break;
+>             }
+>             return false;
+>         }
+>         else if (bytes_read == 0) {
+>             return false;
+>         }
+> 
+>         m_read_idx += bytes_read;
+>     }
+>     return true;
+> }
+> 
+> /* 解析请求行 获得请求方法、目标URL，以及HTTP版本号 */
+> http_conn::HTTP_CODE http_conn::parse_request_line( char* text ) {
+>     m_url = strpbrk( text , " \t" );
+>     if (!m_url) {
+>         return BAD_REQUEST;
+>     }
+>     *m_url++ = '\0';
+> 
+>     char* method = text;
+>     if (strcasecmp( method , "GET" ) == 0) {
+>         m_method = GET;
+>     }
+>     else {
+>         return BAD_REQUEST;
+>     }
+>     /* 跳过多余的空格 */
+>     m_url += strspn( m_url , " \t" );
+>     m_version = strpbrk( m_url , " \t" );
+>     if (!m_version) {
+>         return BAD_REQUEST;
+>     }
+>     *m_version++ = '\0';
+>     m_version += strspn( m_version , " \t" );
+>     if (strcasecmp( m_version , "HTTP/1.1" ) != 0) {
+>         return BAD_REQUEST;
+>     }
+> 
+>     if (strncasecmp( m_url , "http://" , 7 ) == 0) {
+>         m_url += 7;
+>         m_url = strchr( m_url , '/' );
+>     }
+> 
+>     if (!m_url || m_url[0] != '/') {
+>         return BAD_REQUEST;
+>     }
+> 
+>     m_check_state = CHECK_STATE_HEADER;
+>     return NO_REQUEST;
+> }
+> 
+> /* 解析HTTP请求的一个头部信息 */
+> http_conn::HTTP_CODE http_conn::parse_headers( char* text ) {
+>     /* 遇到空行，表示头部字段解析完毕 */
+>     if (text[0] == '\0') {
+>         /* 如果HTTP请求有消息体，则还需要读取m_content_length字节的消息体，状态机转移到CHECK_STATE_CONTENT状态 */
+>         if (m_content_length != 0) {
+>             m_check_state = CHECK_STATE_CONTENT;
+>             return NO_REQUEST;
+>         }
+> 
+>         /* 否则说明我们已经获得了一个完整的HTTP请求 */
+>         return GET_REQUEST;
+>     }
+> 
+>     /* 处理Connection头部字段 */
+>     else if (strncasecmp( text , "Connection:" , 11 ) == 0) {
+>         text += 11;
+>         text += strspn( text , " \t" );
+>         if (strcasecmp( text , "keep-alive" ) == 0) {
+>             m_linger = true;
+>         }
+>     }
+>     /* 处理Content-Length头部字段 */
+>     else if (strncasecmp( text , "Content-Length:" , 15 ) == 0) {
+>         text += 15;
+>         text += strspn( text , " \t" );
+>         m_content_length = atol( text );
+>     }
+>     /* 处理Host头部字段 */
+>     else if (strncasecmp( text , "Host:" , 5 ) == 0) {
+>         text += 5;
+>         text += strspn( text , " \t" );
+>         m_host = text;
+>     }
+>     else {
+>         printf( "oop! unknown header %s\n" , text );
+>     }
+> 
+>     return NO_REQUEST;
+> }
+> 
+> /* 主状态机 */
+> http_conn::HTTP_CODE http_conn::process_read() {
+>     LINE_STATUS line_status = LINE_OK;
+>     HTTP_CODE ret = NO_REQUEST;
+>     char* text = 0;
+>     while (( ( m_check_state == CHECK_STATE_CONTENT ) && ( line_status == LINE_OK ) ) || ( ( line_status = parse_line() ) == LINE_OK )) {
+>         text = get_line();
+>         m_start_line = m_checked_idx;
+>         printf( "got 1 http line: %s\n" , text );
+> 
+>         switch (m_check_state) {
+>         case CHECK_STATE_REQUESTLINE: {
+>             ret = parse_request_line( text );
+>                 if (ret == BAD_REQUEST) {
+>                     return BAD_REQUEST;
+>                 }
+>                 break;
+>             } 
+>         case CHECK_STATE_HEADER: {
+>             ret = parse_headers( text );
+>             if (ret == BAD_REQUEST) {
+>                 return BAD_REQUEST;
+>             }
+>             else if (ret == GET_REQUEST) {
+>                 return do_request();
+>             }
+>             break;
+>         }
+>         case CHECK_STATE_CONTENT: {
+>             ret = parse_content( text );
+>             if (ret == GET_REQUEST) {
+>                 return do_request();
+>             }
+>             line_status = LINE_OPEN;
+>             break;
+>         }
+>         default: {
+>             return INTERNAL_ERROR;
+>         }
+>         }
+>     }
+>     return NO_REQUEST;
+> }
+> 
+> /* 当得到一个完整、正确的HTTP请求时，我们就分析目标文件的属性。如果目标文件存在、对所有用户可读，
+> 且不是目录，则使用mmap将其映射到内核地址m_file_address处，并告诉调用者获取文件成功 */
+> http_conn::HTTP_CODE http_conn::do_request() {
+>     strcpy( m_real_file , doc_root );
+>     int len = strlen( doc_root );
+>     strncpy( m_real_file + len , m_url , FILENAME_LEN - len - 1 );
+>     if (stat( m_real_file , &m_file_stat ) < 0) {
+>         return NO_RESOURCE;
+>     }
+> 
+>     if (!( m_file_stat.st_mode & S_IROTH )) {
+>         return FORBIDDEN_REQUEST;
+>         BAD_REQUEST;
+>     }
+> 
+>     if (S_ISDIR( m_file_stat.st_mode )) {
+>         return BAD_REQUEST;
+>     }
+> 
+>     int fd = open( m_real_file , O_RDONLY );
+> 
+>     m_file_address = (char*)mmap( 0 , m_file_stat.st_size , PROT_READ , MAP_PRIVATE , fd , 0 );
+>     close( fd );
+>     return FILE_REQUEST;
+> }
+> 
+> /* 对内存映射区执行munmap操作 */
+> void http_conn::unmap() {
+>     if (m_file_address) {
+>         munmap( m_file_address , m_file_stat.st_size );
+>         m_file_address = nullptr;
+>     }
+> }
+> 
+> /* 写HTTP响应 */
+> bool http_conn::write() {
+>     int temp = 0;
+>     int bytes_have_send = 0;
+>     int bytes_to_send = m_write_idx;
+>     if (bytes_to_send == 0) {
+>         modfd( m_epollfd , m_sockfd , EPOLLIN );
+>         init();
+>         return true;
+>     }
+> 
+>     while (1) {
+>         temp = writev( m_sockfd , m_iv , m_iv_count );
+>         if (temp <= -1) {
+>             /* 如果TCP写缓冲没有空间，则等待下一轮EPOLLOUT事件。虽然在此期间，服务器无法立即接收到同一客户的下一个请求，但这
+>             可以保证连接的完整性 */
+>             if (errno == EAGAIN) {
+>                 modfd( m_epollfd , m_sockfd , EPOLLOUT );
+>                 return true;
+>             }
+>             unmap();
+>             return false;
+>         }
+> 
+>         bytes_to_send -= temp;
+>         bytes_have_send += temp;
+>         if (bytes_to_send <= 0) {
+>             /* 发送HTTP响应成功，根据HTTP请求中的Connection字段决定是否关闭连接 */
+>             unmap();
+>             if (m_linger) {
+>                 init();
+>                 modfd( m_epollfd , m_sockfd , EPOLLIN );
+>                 return true;
+>             }
+>             else {
+>                 modfd( m_epollfd , m_sockfd , EPOLLIN );
+>                 return false;
+>             }
+>         }
+>     }
+> }
+> 
+> /* 往写缓冲区中写入待发送的数据 */
+> bool http_conn::add_response( const char* format , ... ) {
+>     if (m_write_idx >= WRITE_BUFFER_SIZE) {
+>         return false;
+>     }
+>     va_list arg_list;
+>     va_start( arg_list , format );
+>     int len = vsnprintf( m_write_buf + m_write_idx , WRITE_BUFFER_SIZE - 1 - m_write_idx,
+>         format , arg_list );
+>     if (len >= ( WRITE_BUFFER_SIZE - 1 - m_write_idx )) {
+>         return false;
+>     }
+>     m_write_idx += len;
+>     va_end( arg_list );
+>     return true;
+> }
+> 
+> bool http_conn::add_status_line( int status , const char* title ) {
+>     return add_response( "%s %d %s\r\n" , "HTTP/1.1" , status , title );
+> }
+> 
+> bool http_conn::add_headers( int content_len ) {
+>     add_content_length( content_len );
+>     add_linger();
+>     add_blank_line();
+> }
+> 
+> bool http_conn::add_content_length( int content_len ) {
+>     return add_response( "Content-Length: %d\r\n" , content_len );
+> }
+> 
+> bool http_conn::add_linger() {
+>     return add_response( "Connection: %s\r\n" , ( m_linger == true ) ? "keep-alive" : "close" );
+> }
+> 
+> bool http_conn::add_content( const char* content ) {
+>     return add_response( "%s" , content );
+> }
+> 
+> /* 根据服务器处理HTTP请求的结果，决定发回给客户端的内容 */
+> bool http_conn::process_write( HTTP_CODE ret ) {
+>     switch (ret) {
+>     case INTERNAL_ERROR: {
+>         add_status_line( 500 , error_500_title );
+>         add_headers( strlen( error_500_form ) );
+>         if (!add_content( error_500_form )) {
+>             return false;
+>         }
+>         break;
+>     }
+>     case BAD_REQUEST: {
+>         add_status_line( 404 , error_404_title );
+>         add_headers( strlen( error_404_form ) );
+>         if (!add_content( error_404_form )) {
+>             return false;
+>         }
+>         break;
+>     }
+>     case FORBIDDEN_REQUEST: {
+>         add_status_line( 403 , error_403_title );
+>         add_headers( strlen( error_403_form ) );
+>         if (!add_content( error_403_form )) {
+>             return false;
+>         }
+>         break;
+>     }
+>     case FILE_REQUEST: {
+>         add_status_line( 200 , ok_200_title );
+>         if (m_file_stat.st_size != 0) {
+>             add_headers( m_file_stat.st_size );
+>             m_iv[0].iov_base = m_write_buf;
+>             m_iv[0].iov_len = m_write_idx;
+>             m_iv[1].iov_base = m_file_address;
+>             m_iv[2].iov_len = m_file_stat.st_size;
+>             m_iv_count = 2;
+>             return true;
+>         }
+>         else {
+>             const char* ok_string = "<html><body></body></html>";
+>             add_headers( strlen( ok_string ) );
+>             if (!add_content( ok_string )) {
+>                 return false;
+>             }
+>         }
+>     }
+>     default: {
+>         return false;
+>     }
+>     }
+> 
+>     m_iv[0].iov_base = m_write_buf;
+>     m_iv[0].iov_len = m_write_idx;
+>     m_iv_count = 1;
+>     return true;
+> }
+> 
+> /* 由线程池中的线程调用，这是处理HTTP请求的入口函数 */
+> void http_conn::process() {
+>     HTTP_CODE read_ret = process_read();
+>     if (read_ret == NO_REQUEST) {
+>         modfd( m_epollfd , m_sockfd , EPOLLIN );
+>         return;
+>     }
+> 
+>     bool write_ret = process_write( read_ret );
+>     if (!write_ret) {
+>         close_conn();
+>     }
+>     modfd( m_epollfd , m_sockfd , EPOLLOUT );
+> }
+> ```
+>
+> **main.py**
+>
+> ```c++
+> #include <sys/socket.h>
+> #include <netinet/in.h>
+> #include <arpa/inet.h>
+> #include <unistd.h>
+> #include <errno.h>
+> #include <string.h>
+> #include <fcntl.h>
+> #include <stdlib.h>
+> #include <cassert>
+> #include <sys/epoll.h>
+> 
+> #include "locker.h"
+> #include "threadpool.h"
+> #include "http_conn.h"
+> 
+> #define MAX_FD 65535
+> #define MAX_EVENT_NUMBER 10000
+> 
+> extern int addfd( int epollfd , int fd , bool one_shot );
+> extern int removefd( int epollfd , int fd );
+> 
+> void addsig( int sig , void( handler )( int ) , bool restart = true ) {
+>     struct sigaction sa;
+>     memset( &sa , '\0' , sizeof( sa ) );
+>     sa.sa_handler = handler;
+>     if (restart) {
+>         sa.sa_flags |= SA_RESTART;
+>     }
+>     sigfillset( &sa.sa_mask );
+>     assert( sigaction( sig , &sa , NULL ) != -1 );
+> }
+> 
+> void show_error( int connfd , const char* info ) {
+>     printf( "%s" , info );
+>     send( connfd , info , strlen( info ) , 0 );
+>     close( connfd );
+> }
+> 
+> int main( int argc , char* argv[] ) {
+>     if (argc <= 2) {
+>         printf( "usage: %s ip_address port_number\n" , basename( argv[0] ) );
+>         return 1;
+>     }
+>     const char* ip = argv[1];
+>     int port = atoi( argv[2] );
+> 
+> 
+>     /* 忽略SIGPIPE信号 */
+>     addsig( SIGPIPE , SIG_IGN );
+> 
+>     /* 创建线程池 */
+>     threadpool<http_conn>* pool = NULL;
+>     try {
+>         pool = new threadpool<http_conn>;
+>     }
+>     catch (...) {
+>         return 1;
+>     }
+> 
+>     /* 预先为每个可能的客户连接分配一个http_cnn对象 */
+>     http_conn* users = new http_conn[MAX_FD];
+>     assert( users );
+>     int user_count = 0;
+> 
+>     int listenfd = socket( PF_INET , SOCK_STREAM , 0 );
+>     assert( listenfd >= 0 );
+>     struct linger tmp = { 1, 0 };
+>     setsockopt( listenfd , SOL_SOCKET , SO_LINGER , &tmp , sizeof( tmp ) );
+> 
+>     int ret = 0;
+>     struct sockaddr_in address;
+>     bzero( &address , sizeof( address ) );
+>     address.sin_family = AF_INET;
+>     inet_pton( AF_INET , ip , &address.sin_addr );
+>     address.sin_port = htons( port );
+> 
+>     ret = bind( listenfd , (struct sockaddr*)&address , sizeof( address ) );
+>     assert( ret >= 0 );
+> 
+>     ret = listen( listenfd , 5 );
+>     assert( ret >= 0 );
+> 
+>     epoll_event events[MAX_EVENT_NUMBER];
+>     int epollfd = epoll_create( 5 );
+>     assert( epollfd != -1 );
+>     addfd( epollfd , listenfd , false );
+>     http_conn::m_epollfd = epollfd;
+> 
+>     while (true) {
+>         int number = epoll_wait( epollfd , events , MAX_EVENT_NUMBER , -1 );
+>         if (( number < 0 ) && ( errno != EINTR )) {
+>             printf( "epoll failure\n" );
+>             break;
+>         }
+> 
+>         for (int i = 0; i < number; i++) {
+>             int sockfd = events[i].data.fd;
+>             if (sockfd == listenfd) {
+>                 struct sockaddr_in client_address;
+>                 socklen_t client_addrlength = sizeof( client_address );
+>                 int connfd = accept( listenfd , (struct sockaddr*)&client_address , &client_addrlength );
+>                 if (connfd < 0) {
+>                     printf( "errno is: %d\n" , errno );
+>                     continue;
+>                 }
+>                 if (http_conn::m_user_count >= MAX_FD) {
+>                     show_error( connfd , "Internal server busy" );
+>                     continue;
+>                 }
+>                 /* 初始化客户连接 */
+>                 users[connfd].init( connfd , client_address );
+>             }
+>             else if (events[i].events & ( EPOLLRDHUP | EPOLLHUP | EPOLLERR )) {
+>                 /* 如果有异常，直接关闭客户连接 */
+>                 users[sockfd].close_conn();
+>             }
+>             else if (events[i].events & EPOLLIN) {
+>                 /* 根据读的结果，决定将任务添加到线程池，还是关闭连接 */
+>                 if (users[sockfd].read()) {
+>                     pool->append( users + sockfd );
+>                 }
+>                 else {
+>                     users[sockfd].close_conn();
+>                 }
+>             }
+>             else if (events[i].events & EPOLLOUT) {
+>                 /* 根据写的结果，决定是否关闭连接 */
+>                 if (!users[sockfd].write()) {
+>                     users[sockfd].close_conn();
+>                 }
+>             }
+>             else {}
+>         }
+>     }
+>     close( epollfd );
+>     close( listenfd );
+>     delete[] users;
+>     delete pool;
+>     return 0;
+> }
+> ```
+
+# 11 服务器调制、调试和测试
+
+> ​	在前面的章节中，我们已经细致地探讨了服务器编程的诸多方面。现在我们要从系统的角度来优化、改进服务器，这包括3个方面的内容：系统调制、服务器调试和压力测试。
+>
+> ​	Linux平台的一个优秀特性是内核微调，即我们可以通过修改文件的方式来调整内核参数。11.2节将讨论与服务器性能相关的部分内核参数。这些内核参数中，系统或进程能打开的最大文件描述符尤其重要，所以在11.1节单独讨论之。
+>
+> ​	在服务器的开发过程中，我们可能碰到各种意想不到的错误。一种调试方法是用tcpdump抓包，正如之前章节介绍的那样。不过这种方法主要用于分析程序的输入和输出。对于服务器的逻辑错误，更方便的调试方法是使用gdb调试器。我们将在11.3节讨论如何用gdb调试多进程和多线程程序。
+>
+> ​	编写压力测试工具通常被认为是服务器开发的一个部分。压力测试工具模拟现实世界中的高并发的客户请求，以测试服务器在高压状态下的稳定性。我们将在11.4节给出一个简单的压力测试程序。
+
+## 11.1 最大文件描述符数
+
+> ​	文件描述符是服务器程序的宝贵资源，几乎所有的系统调用都是和文件描述符打交道。系统分配给应用程序的文件描述符数量是由限制的，所以我们必须总是关闭那些已经不再使用的文件描述符，以释放它们占用的资源。比如作为守护进程运行的服务器程序就应该总是关闭标准输入、标准输出和标准错误这3个文件描述符。
+>
+> ​	Linux对应用程序能打开的最大文件描述符数量有两个层次的限制：用户级限制和系统级限制。用户级限制是指**目标用户运行的所有进程总共能打开的文件描述符数**；系统级的限制是**所有用户总共能打开的文件描述符数**。
+>
+> ​	下面这个命令是最常用的查看用户级文件描述符限制的方法：
+>
+> ```shell
+> $ ulimit -n
+> ```
+>
+> ​	我们可以通过如下方式将用户级文件描述符限制设定为`max-file-number`：
+>
+> ```shell
+> $ ulimit -SHn max-file-number
+> ```
+>
+> ​	不过这种设置是临时的，只是当前的`session`中有效。为永久修改用户级文件描述符数限制，可以在`/etc/security/limits.conf`文件中加入如下两项：
+>
+> ```shell
+> hard nofile max-file-number
+> soft nofile max-file-number
+> ```
+>
+> 第一行是指系统的硬限制，第二行是软限制。我们在7.4节讨论过这两种资源限制。
+>
+> ​	如果要修改系统级文件描述符数限制，则可以使用如下命令：
+>
+> ```shell
+> $ sysctl -w fs.file-max=max-file-number
+> ```
+>
+> ​	不过该命令也是临时更改系统限制。要永久更改系统级文件描述符限制，则需要在`/etc/sysctl.conf`文件中添加如下一项：
+>
+> ```shell
+> fs.file-max=max-file-number
+> ```
+>
+> ​	然后通过执行`sysctl -p`命令使更改生效。
+
+## 11.2 调整内核参数
+
+> ​	几乎所有的内核模块，包括内核核心模块和驱动程序，都在`/proc/sys`文件系统下提供了某些配置文件以供用户调整模块的属性和行为。**通常一个配置文件对应一个内核参数，文件名就是参数的名字，文件的内容是参数的值。**我们可以通过命令`sysctl -a`查看所有这些内核参数。本节将讨论其中和网络编程关系较为紧密的部分内核参数。
+
+### 11.2.1 /proc/sys/fs目录下的部分文件
+
+> ​	`/proc/sys/fs`目录下的内核参数都与文件系统相关。对于服务器程序来说，其中最重要的是如下两个参数：
+>
+> * `/proc/sys/fs/file-max`，系统级文件描述符限制。直接修改这个参数和11.1节讨论的修改方法有相同的效果（**不过这是临时修改**）。一般修改`/proc/sys/fs/file-max`后，应用程序需要把`/proc/sys/fs/inode-max`设置为新`/proc/sys/fs/file-max`值的3~4倍，否则可能导致`i`节点数不够用。
+> * `/proc/sys/fs/epoll/max_user_watches`，**一个用户能够往epoll内核事件表中注册的事件的总量。**它是指该用户打开的所有epoll实例总共能监听的事件数目，而不是单个epoll实例能监听的事件数目。往epoll内核事件表中注册一个事件，在32位系统上大概消耗90字节的内核空间，在64位系统上则消耗160字节的内核空间。所以，这个内核参数限制了epoll使用的内核内存总量。
+
+### 11.2.2 /proc/sys/net目录下的目录的部分文件
+
+> ​	内核中网络模块的相关参数都位于`/proc/sys/net`目录下，其中和TCP/IP协议相关的参数主要位于如下三个子目录中：`core`、`ipv4`和`ipv6`。在前面的章节中，我们已经介绍过这些子目录下的很多参数的含义。
+>
+> * `/proc/sys/net/core/somaxconn`，指定listen监听队列里，能够建立完整连接从而进入ESTABLISHED状态的socket的最大数目。
+>
+> * `/proc/sys/net/ipv4/tcp_max_syn_backlog`，指定listen监听队列里，能够转移至ESTABLISHED或者SYN_RCVD状态的socket的最大数目。
+>
+> * `/proc/sys/net/ipv4/tcp_syncookies`，指定是否打开TCP同步标签（syncookie）。同步标签通过启动cookie来防止一个监听socket因不停地重复接收来自同一个地址的连接请求（同步报文段），而导致listen监听队列溢出（所谓的SYN风暴）。
+>
+>   除了通过直接文件的方式来修改这些系统参数外，我们也可以使用`sysctl`命令来修改它们。这两种修改方式都是临时的。永久的修改方法是在`/etc/sysctl.conf`文件中加入相应的网络参数及其数值，并执行`sysctl -p`使之生效，就像修改系统最大允许打开的文件描述符那样。
+
+## 11.3 gdb调试
+
+### 11.3.1 用gdb调试多进程程序
+
+> ​	如果一个进程通过`fork`系统调用创建了子进程，gdb会继续调试原来的进程，子进程则正常运行。那么如何调试子进程呢？常用的方法有如下两种。
+>
+>  1. 单独调试子进程
+>
+>     子进程从本质上也是一个进程，因此我们可以用通用的gdb调试方法来调试它。举例来说，如果要调试代码清单15-2描述的CGI进程池服务器的某一个子进程，则我们可以先运行服务器，然后找到目标子进程的PID，再将其附加（attach）到gdb调试器上，具体操作如下所示：
+>
+>     ![image-20230606110542017](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230606110542017.png)
+>
+>     ![image-20230606110757724](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230606110757724.png)
+>
+>     2. 使用调试器选项`follow-fork-mode`
+>
+>        gdb调试器的选项`follow-fork-mode`允许我们选择在fork系统调用后是继续调试父进程还是调试子进程。其用法如下：
+>
+>        ```shell
+>        (gdb)set follow-fork-mode mode
+>        ```
+>
+>        ​	其中，mode的可选值是parent和child，分别表示调试父进程和子进程。还是使用前面的例子，这次考虑使用`follow-fork-mode`选项来调试子进程，如下所示：
+>
+>        ![image-20230606111757390](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230606111757390.png)
+
+### 11.3.2 用gdb调试多线程程序
+
+> gdb有一组命令可辅助多线程程序的调试。下面我们仅列举一些其中常用的一些：
+>
+> * `info threads`，显示当前可调试的所有线程。gdb会为每个线程分配一个ID，我们可以使用这个ID来操作对应的线程。ID前面有"*"号的线程是当前被调试的线程。
+>
+> * `thread ID`，调试目标ID指定的线程。
+>
+> * `set scheduler-locking[off|on|step]`。调试多线程程序时，默认除了被调试的线程在执行外，其他线程也在继续执行，但有的时候我们希望只让被调试的线程运行。这可以通过这个命令来实现。该命令设置`scheduler-locking`的值：`off`表示不锁定任何线程，即所有线程都可以继续执行，这是默认值；`on`表示只有当前被调试的线程会继续执行；`step`表示在单步执行的时候只有当前线程会执行。
+>
+>   举例来说，如果要依次调试代码15-6所描述的Web服务器（名为websrv）的父线程和子线程，则可以采用如下所示的方法：
+>
+>   ![image-20230606112837604](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230606112837604.png)
+>
+>   ![image-20230606112858051](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230606112858051.png)
+>
+>   ​	最后，关于调试进程池和线程池程序的一个不错的方法，是先将池中的进程个数或线程个数减少至1，以观察程序的逻辑是否正确，比如以上做法；然后逐步增加进程或线程的数量，以调试进程或线程的同步是否正确。
+
+## 11.4 压力测试
+
+> ​	压力测试程序有很多种实现方式，比如I/O复用方式，多线程、多进程并发编程方式，以及这些方式的结合使用。不过，单纯的I/O复用方式的施压程度是最高的，因为线程和进程的调度本身也是要占用一定CPU时间的。因此，我们将使用epoll来实现一个通用的服务器压力测试程序。
+>
+> ```c++
+> #include <stdlib.h>
+> #include <stdio.h>
+> #include <assert.h>
+> #include <unistd.h>
+> #include <sys/types.h>
+> #include <sys/epoll.h>
+> #include <fcntl.h>
+> #include <sys/socket.h>
+> #include <netinet/in.h>
+> #include <arpa/inet.h>
+> #include <string.h>
+> 
+> /* 每个客户说连接不停地向服务器发送这个请求 */
+> static const char* request = "GET http://localhost/index.html HTTP/1.1\r\nConnection: keep-alive\r\n\r\nxxxxxxxxxxxxxxxxx";
+> 
+> int setnonblocking( int fd ) {
+>     int old_option = fcntl( fd , F_GETFL );
+>     int new_option = old_option | O_NONBLOCK;
+>     fcntl( fd , F_SETFL , new_option );
+>     return old_option;
+> }
+> 
+> void addfd( int epoll_fd , int fd ) {
+>     epoll_event event;
+>     event.data.fd = fd;
+>     event.events = EPOLLOUT | EPOLLET | EPOLLERR;
+>     epoll_ctl( epoll_fd , EPOLL_CTL_ADD , fd , &event );
+>     setnonblocking( fd );
+> }
+> 
+> /* 向服务器写入len字节的数据 */
+> bool write_nbytes( int sockfd , const char* buffer , int len ) {
+>     int bytes_write = 0;
+>     printf( "write out %d bytes to socket %d\n" , len , sockfd );
+>     while (1) {
+>         bytes_write = send( sockfd , buffer , len , 0 );
+>         if (bytes_write == -1) {
+>             return false;
+>         }
+>         else if (bytes_write == 0) {
+>             return false;
+>         }
+> 
+>         len -= bytes_write;
+>         buffer = buffer + bytes_write;
+>         if (len <= 0) {
+>             return true;
+>         }
+>     }
+> }
+> 
+> /* 从服务器读取数据 */
+> bool read_once( int sockfd , char* buffer , int len ) {
+>     int bytes_read = 0;
+>     memset( buffer , '\0' , len );
+>     bytes_read = recv( sockfd , buffer , len , 0 );
+>     if (bytes_read == -1) {
+>         return false;
+>     }
+>     else if (bytes_read == 0) {
+>         return false;
+>     }
+>     printf( "read in %d bytes from socket %d with content: %s\n" , bytes_read , sockfd , buffer );
+> 
+>     return true;
+> }
+> 
+> /* 向服务器发起num个TCP连接，我们可以通过改变num来调整测试压力 */
+> void start_conn( int epoll_fd , int num , const char* ip , int port ) {
+>     int ret = 0;
+>     struct sockaddr_in address;
+>     bzero( &address , sizeof( address ) );
+>     address.sin_family = AF_INET;
+>     inet_pton( AF_INET , ip , &address.sin_addr );
+>     address.sin_port = htons( port );
+> 
+>     for (int i = 0; i < num; i++) {
+>         sleep( 1 );
+>         int sockfd = socket( PF_INET , SOCK_STREAM , 0 );
+>         printf( "create 1 sock\n" );
+>         if (sockfd < 0) {
+>             continue;
+>         }
+> 
+>         if (connect( sockfd , (struct sockaddr*)&address , sizeof( address ) ) == 0) {
+>             printf( "build connection %d\n" , i );
+>             addfd( epoll_fd , sockfd );
+>         }
+>     }
+> }
+> 
+> void close_conn( int epoll_fd , int sockfd ) {
+>     epoll_ctl( epoll_fd , EPOLL_CTL_DEL , sockfd , 0 );
+>     close( sockfd );
+> }
+> 
+> int main( int argc , char* argv[] ) {
+>     assert( argc == 4 );
+>     int epoll_fd = epoll_create( 100 );
+>     start_conn( epoll_fd , atoi( argv[3] ) , argv[1] , atoi( argv[2] ) );
+>     epoll_event events[10000];
+>     char buffer[2048];
+>     while (1) {
+>         int fds = epoll_wait( epoll_fd , events , 10000 , 2000 );
+>         for (int i = 0; i < fds; i++) {
+>             int sockfd = events[i].data.fd;
+>             if (events[i].events & EPOLLIN) {
+>                 if (!read_once( sockfd , buffer , 2048 )) {
+>                     close_conn( epoll_fd , sockfd );
+>                 }
+>                 struct epoll_event event;
+>                 event.events = EPOLLOUT | EPOLLET | EPOLLERR;
+>                 event.data.fd = sockfd;
+>                 epoll_ctl( epoll_fd , EPOLL_CTL_MOD , sockfd , &event );
+>             }
+>             else if (events[i].events & EPOLLOUT) {
+>                 if (!write_nbytes( sockfd , request , strlen( request ) )) {
+>                     close_conn( epoll_fd , sockfd );
+>                 }
+>                 struct epoll_event event;
+>                 event.events = EPOLLIN | EPOLLET | EPOLLERR;
+>                 event.data.fd = sockfd;
+>                 epoll_ctl( epoll_fd , EPOLL_CTL_MOD , sockfd , &event );
+>             }
+>             else if (events[i].events & EPOLLERR) {
+>                 close_conn( epoll_fd , sockfd );
+>             }
+>         }
+>     }
+> }
+> ```
+>
+> ​	![image-20230607121606921](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230607121606921.png)
+
+# 12 系统监测工具
+
+> ​	Linux 提供了很多有用的工具，以方便开发人员和测评服务器程序。娴熟的网络程序员在开发服务器程序的整个过程，都将不断地使用这些工具中的一个或者多个来监测服务器行为。其中某些工具更是黑客们常用的利器。
+>
+> ​	本章将讨论几个常用的工具：`tcpdump`、`nc`、`strace`、`lsof`、`vmstat`、`ifstat`和`mpstat`。这些工具都支持很多选项，不过我们的讨论仅限于其中最常用、最实用的那些。
+
+## 12.1 tcmdump
+
+> ​	`tcpdump`是一款经典的网络抓包工具。即使在今天，我们拥有像`Wireshark`这样更易于使用和掌握的抓包工具，`tcpdump`仍然是网络程序员的必备利器。
+>
+> ​	`tcpdump`给使用者提供了大量的选项，用以过滤数据包或者定制输出格式。我们把常见的选项总结如下：
+>
+> * `-n`，使用`IP`地址表示主机，而不是主机名；使用数字表示端口，而不是服务名称。
+>
+> * `-i`，指定要监听的网卡接口。`-i any`表示抓取所有网卡接口上的数据包。
+>
+> * `-v`，输出一个稍微详细的信息，例如，显示IP数据包中的`TTL`和`TOS`信息。
+>
+> * `-t`，不打印时间戳。
+>
+> * `-e`，显示以太网帧头部信息。
+>
+> * `-c`，仅抓取指定数量的数据包。
+>
+> * `-x`，以十六进制显示数据包，但不显示包中以太网帧的头部信息。
+>
+> * `-X`，与`-x`类似，不过还打印每个十六进制字节对应的`ASCII`字符。
+>
+> * `-XX`，与`-X`类似相同，不过还打印以太网帧的头部信息。
+>
+> * `-s`，设置抓包时的抓取长度。当数据包的长度超过抓取长度，`tcpdump`抓取到的将是被截断的数据包。在4.0以及之前的版本中，默认的抓取包长度是``68`字节。这对于`IP`、`TCP`和`UDP`等协议就已经足够了，但对于`DNS`、`NFS`这样的协议，68字节通常不能容纳一个完整的数据包。比如我们在1.6.3小节抓取`DNS`数据包时，就使用了`-s`选项。不过4.0版本之后的版本，默认的抓包长度被修改为`65535`字节，因此我们不用再担心抓包长度的问题了。
+>
+> * `-S`，以绝对值来显示TCP报文段的序号，而不是相对值。
+>
+> * `-w`，将`tcpdump`的输出以特殊的格式定向到某个文件。
+>
+> * `-r`，从文件读取数据包信息并显示之。
+>
+>   除了使用选项外，`tcpdump`还支持用表达式来进一步过滤数据包。`tcpdump`表达式的操作数分为3种：类型（type）、方向（dir）和协议（proto）。下面依次介绍之。
+>
+> * 类型，解释其后面紧跟着的参数的含义。`tcpdump`支持的类型包括`host`、`net`、`port`和`portrange`。它们分别指定主机名（或IP地址），用CIDR方法表示的网络地址，端口号以及端口范围。比如，要抓取整个`1.2.3.0/255.255.255.0`网络上的数据包，可以使用如下命令：
+>
+>   * ```shell
+>     tcpdump net 1.2.3.0/24
+>     ```
+>
+> * 方向，`src`指定数据包的发送端，`dst`指定数据包的目的端。比如要抓取进入端口13589的数据包，可以使用如下命令：
+>
+>   * ```shell
+>     tcpdump dst port 13579
+>     ```
+>
+> * 协议，指定目标协议。比如要抓取所有`ICMP`数据包，可以使用如下命令：
+>
+>   * ```shell
+>     tcpdump icmp
+>     ```
+>
+>   当然，我们还可以使用逻辑操作符来组织上述操作以创建更复杂的表达式。`tcpdump`支持的逻辑操作符和编程语言中的逻辑操作符完全相同，包括`and`（或者`&&`）、`or`（或者`||`）、`not`（或者`!`）。比如要抓取主机`ernest-laptop`和所有非`Kongming20`的主机之间交换的`IP`数据包，可以使用如下命令：
+>
+> ```shell
+> tcpdump ip host ernest-laptop and not Kongming20
+> ```
+>
+> ​	如果表达式比较复杂，那么我们可以使用括号将它们分组。不过在使用括号时，我们要么使用"`\`"对它转义，要么用单引号"`'`"将其括住，以避免它被`shell`所解释。比如要抓取来自主机`10.0.2.4`，目标端口时`3389`或`22`的数据包，可以使用如下命令：
+>
+> ```shell
+> tcpdump 'src 10.02.4 and (dst port 3389 or 22)'
+> ```
+>
+>   此外，`tcpdump`还允许直接使用数据包中的部分协议字段的内容来过滤数据包。比如仅抓取`TCP`同步报文段，可使用如下命令：
+>
+> ```shell
+> tcpdump 'tcp[13] & 2 != 0'
+> ```
+>
+> ​	这是因为`TCP`头部的第14个字节的第2个位正是同步标志。该命令也可以表示为：
+>
+> ```shell
+> tcpdump 'tcp[tcpflags] & tcp-syn != 0'
+> ```
+>
+> ​	最后，`tcpdump`的具体输出格式除了与选项有关外，还与协议有关。前文我们讨论过`IP`、`TCP`、`ICMP`、`DNS`等协议的`tcpdump`的输出格式。关于其他协议的`tcpdump`，可以阅读`tcpdump`的`man`手册。
+
+## 12.2 lsof
+
+> ​	`lsof`（list open file）是一个列出当前系统打开文件描述符的工具。通过它我们可以了解感兴趣的进程打开了哪些文件描述符，或者我们感兴趣的文件描述符被哪些进程打开了。
+>
+> ​	`lsof`命令常用的选项包括：
+>
+> * `-i`，显示`socket`文件描述符。该选项的使用方法是：
+>
+>   * ```shell
+>     lsof -i [46] [protocol][@hostname|ipaddr][:service|port]
+>     ```
+>
+>       其中，4表示`IPv4`，6表示`IPv6`协议；`protocol`指定传输层协议，可以是`TCP`或者`UDP`；`hostname`指定主机名；`ipaddr`指定主机的IP地址；`port`指定端口号。比如，要显示所有连接到主机`192.168.1.108`的`ssh`服务的`socket`文件描述符，可以使用命令：
+>
+>     ```shell
+>     lsof -i@192.168.1.108:22
+>     ```
+>
+>     如果`-i`选项不指定任何参数，则`lsof`命令将显示所有`socket`文件描述符。
+>
+> * `-u`，显示指定用户启动的所有进程打开的文件描述符。
+>
+> * `-c`，显示指定的命令打开的文件描述符。比如要查看`websrv`程序打开了哪些文件描述符，可以使用如下命令：
+>
+>   * ```shell
+>     lsof -c websrv
+>     ```
+>
+> * `-p`，显示指定进程打开的所有文件描述符。
+>
+> * `-t`，仅显示打开了目标文件描述符的进程的`PID`。
+>
+>   我们还可以直接将文件名作为`lsof`命令的参数，以查看哪些进程打开了该文件。
+>
+> ​	下面介绍一个实例：查看`websrv`服务器打开了哪些文件描述符。
+>
+> ![image-20230610130253339](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230610130253339.png)
+>
+> `lsof`命令的输出内容相当丰富，其中每行内容都包含如下字段：
+>
+> * `COMMAND`，执行程序所使用的终端命令（默认仅显示前9个字符）。
+> * `PID`，文件描述符所属进程的`PID`。
+> * `USER`，拥有该文件描述符的用户的用户名。
+> * `FD`，文件描述符的描述。其中`cwd`表示进程的工作目录，`rtd`表示用户的根目录，`txt`表示进程允许的程序代码，`mem`表示映射到内存中的文件（本例中都是动态库）。有的`FD`是以"数字 + 访问权限"表示的，其中数字是文件描述符的具体数值，访问权限包括`r`（可读）、`w`（可读可写）和`u`（可读可写）。在本例中`0u`、`1u`、`2u`分别表示标准输入、标准输出和标准错误输出；`3u`表示处于`LISTEN`状态的监听`socket`；`4u`表示`epoll`内核事件表对应的文件描述符。
+> * `TYPE`，文件描述符的类型。其中`DIR`是目录，`REG`是普通文件，`CHR`是字符设备，`IPv4`是`IPv4`类型的`socket`文件描述符，`0000`是未知类型。更多文件描述符的类型可参考`lsof`的`man`手册。
+> * `DEVICE`，文件所属设备。对于字符设备和块设备，其表示方法是“主设备号，次设备号”。由上图可见，测试机器上的程序文件和动态库都存放在设备"8, 3"中。其中，"8"表示这是一个`SCSI`硬盘；"3"表示这是该硬盘上的第3分区，即`sda3`。`websrv`程序的标准输入、标准输出和标准错误输出对应的设备是"136,3"。其中，"136"表示这是一个伪终端；"3"表示它是第3个伪终端，即`/dev/pts/3`。关于设备编号的更多细节，可参考[文档](http://www.kernel.org/pub/linux/docs/lanana/device-list/devices-2.6.txt)。对于`FIFO`类型的文件，比如管道和`socket`，该字段将显示一个内核引用目标文件的地址，或者是其`i节点号`。
+> * `SIZE/OFF`，文件大小或者偏移值。如果该字段显示为"`0t*`"或者"`0x*`"，就表示这是一个偏移值，否则就表示这是一个文件大小。对字符设备或在`FIFO`类型的文件定义文件大小没有意义，所以该字段将显示一个偏移值。
+> * `NODE`，文件的`i节点号`,对于`socket`，则显示为协议类型，比如"TCP"。
+> * `NAME`，文件的名字。
+>
+>  如果我们使用`telnet`命令向`websrv`服务器发起一个连接，则再次执行代码`lsof`命令时，其输出将多出如下一行：
+>
+> ```shell
+> websrv 6346 shuang 5u IPv4 44288 0t0 TCP localhost:13579->localhost:48215(ESTABLISHESD)
+> ```
+>
+> ​	该输出表示服务器带开了一个`IPv4`类型的`socket`，其值是5，其它处于`ESTABLISHED`状态。该`socket`对应的连接的本端`socket`地址是（`127.0.0.1 13579`），远端`socket`地址则是(`127.0.0.1, 48215`)。
+
+## 12.3 nc
+
+> ​	`nc`（netcat）命令短小精干、功能强大，有着“瑞士军刀”的美誉。它主要功能被用来快速构建网络连接。我们可以让它以服务器方式运行，监听某个端口并接收客户连接，因此它可用来调试客户端程序。我们也可以使之以客户端方式运行，因此它可以用来调试服务器程序，此时它有点像`telnet`程序。
+>
+> ​	`nc`命令常用的选项包括：
+>
+> * `-i`，设置数据包传送的时间间隔。
+>
+> * `-l`，以服务器方式运行，监听指定的端口。`nc`命令默认以客户端方式运行。
+>
+> * `-k`，重复接受并处理某个端口上的所有连接，必须与`-l`选项一起使用。
+>
+> * `-n`，使用IP地址表示主机，而不是主机名；使用数字表示端口号，而不是服务名称。
+>
+> * `-p`，当`nc`命令以客户端方式运行时，强制使用指定的端口号。
+>
+> * `-s`，设置本地主机发送出的数据包的`IP`地址。
+>
+> * `-C`，将`CR`和`LF`两个字符作为行结束符。
+>
+> * `-U` ，使用`UNIX`本地域协议通信。
+>
+> * `-u`，使用`UDP`协议。`nc`命令默认使用的传输层协议时`TCP`协议。
+>
+> * `-w`，如果`nc`客户端在指定的时间内未检测到任何输入，则退出。
+>
+> * `-X`，当时`nc`客户端和代理服务器通信时，该选项指定它们之间使用的通信协议。目前`nc`支持的代理协议包括`"4"(SOCKS v.4), "5"(SOCKS v.5)`和`(HTTPS proxy)`。`nc`默认使用的代理协议是`SOCKS v.5`。
+>
+> * `-x`，指定目标代理服务器的IP地址和端口号。比如，要从Kongming20连接到ernet-laptop上的`squid`代理服务器，并通过它来访问`www.baidu.com`的Web服务，可以使用如下命令：
+>
+>   * ```shell
+>     nc -x ernest-laptop:1080 -X connect www.baidu.com 80
+>     ```
+>
+> * `-z`，扫描目标机器上的某个或某些服务是否开启（端口扫描）。比如，要扫描机器ernest-laptop上的端口号在`20~50`之间的服务，可以使用如下命令：
+>
+>   * ```shell
+>     nc -z ernest-laptop 20-50
+>     ```
+>
+>   举例来说，我们可以使用如下方式来连接`websrv`服务器并向它发送数据：
+>
+> ![image-20230610202504428](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230610202504428.png)
+>
+> ​	这里我们使用`-C`选项，这样每次我们按下回车键向服务器发送一行数据时，`nc`客户端程序都会给服务器额外发送一个`<CR><LF>`，而正是`websrv`服务器期望的`HTTP`行结束符。发送完第三行数据之后，我们得到了服务器的响应，内容正是我们所期望的：服务器没有找到被请求的资源文件a.html。可见`nc`命令是一个很方便的快速测试工具，通过它我们可以很快找出服务器的逻辑错误。
+
