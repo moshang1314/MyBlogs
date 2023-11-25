@@ -76,249 +76,6 @@
 
 * 阻止派生类的析构函数调用：如果基类的析构函数声明为私有，则派生类无法直接调用基类的析构函数。这可以用于强制使用
 
-# 2 C++ 单例模式
-
-## 2.1 什么是单例模式
-
-> ​	单例模式（Singleton Pattern，也称为单件模式），使用最广泛的设计模式之一。其意图是保证一个类仅有一个实例，并提供一个访问它的全局访问点，该实例被所有程序模块共享。
->
-> **定义一个实例类：**
->
-> 1. 私有化它的构造函数，以防止外界创建单例类的对象；
-> 2. 使用类的私有静态指针变量指向类的唯一实例。
-> 3. 使用一个公有的静态方法获取该实例。
->
-> 注意：
->
-> * 通常情况下，单例类会将构造函数、拷贝构造函数和赋值运算符都声明为私有(private)，以禁止从外部进行对象的复制和赋值。这样做可以确保只有一个实例，并防止通过赋值运算符创建新的实例。但某些情况下，可以自定义拷贝构造和赋值运算符来确保单例对象的正确行为。
-> * 私有化析构函数可以防止在类外部通过`delete`关键字删除单例对象。
-
-## 2.2 懒汉版（Lazy Singleton）
-
-```c++
-class Singleton{
-private:
-	static Singleton* instance;
-private:
-	Singleton(){}
-	~Singleton(){}	
-	Singleton(const Singleton&) = delete;
-	Singleton(const Singleton&&) = delete;
-	Singleton& operator=(const Singleton&) = delete;
-public:
-	static Sigleton* getInstance(){
-	if(instance == NULL)
-		instance = new Singleton();
-	return instance;
-	}
-};
-Singleton* Singleton::instance = NULL;
-
-
-int main() {
-    Singleton* p = Singleton::getInstance();
-    return 0;
-}
-```
-
-> 存在内存泄漏的问题，有两种解决方法：
->
-> 1. 使用智能指针
-> 2. 使用静态的嵌套对象
->
-> 对于第一种解决方法，代码如下：
->
-> ```c++
-> #include <iostream>
-> #include <memory>
-> using namespace std;
-> 
-> class Singleton {
-> private:
-> 	static shared_ptr<Singleton> instance;
-> private:
->     Singleton() {
->         cout << "构造函数" << endl;
->     }
->     Singleton( const Singleton& ) = delete;
-> 	Singleton(const Singleton&&) = delete;
-> 	Singleton& operator=(const Singleton&) = delete;
-> public:
->     /* 此时，析构函数必须为公有，因为通过智能指针在类外调用类的析构，否则编译通过 */
->     ~Singleton() {
->         cout << "析构函数" << endl;
->     }
->     static shared_ptr<Singleton>& getInstance() {
->         if (instance == nullptr)
->         {
->             instance = shared_ptr<Singleton>(new Singleton());
->             //instance.reset( new Singleton() );
->         }
->         return instance;
-> 	}
-> };
-> 
-> shared_ptr<Singleton> Singleton::instance = nullptr;
-> 
-> int main() {
->     shared_ptr<Singleton>& p = Singleton::getInstance();
->     return 0;
-> }
-> ```
->
-> 第二种解决方案，代码如下：
->
-> ```c++
-> #include <iostream>
-> #include <memory>
-> using namespace std;
-> 
-> class Singleton {
-> private:
-> 	static Singleton *instance;
-> private:
->     Singleton() {
->         cout << "构造函数" << endl;
->     }
-> 
->      ~Singleton() {
->         cout << "析构函数" << endl;
->      }
->      
->      Singleton( const Singleton& ) = delete;
->      Singleton& operator=( const Singleton& ) = delete;
-> private:
->     class Deletor {
->     public:
->         ~Deletor() {
->             if (Singleton::instance != nullptr) {
->                 delete Singleton::instance;
->             }
->         }
->     };
->     static Deletor deletor;
-> public:
->     static Singleton* getInstance() {
->         if (instance == nullptr)
->         {
->             instance = new Singleton();
->         }
->         return instance;
-> 	}
-> };
-> 
-> Singleton* Singleton::instance = nullptr;
-> /* 必须对静态对象在类外初始化，否则可能被编译器优化删除 */
-> Singleton::Deletor Singleton::deletor = Singleton::Deletor();
-> 
-> int main() {
->     Singleton* p = Singleton::getInstance();
->     return 0;
-> }
-> ```
->
-> ​	在程序结束时，系统会调用静态成员`deletor`的析构函数，该析构函数会释放单例的唯一实例。使用这种方法释放单例对象有以下特征：
->
-> * 在单例类内部定义专有的嵌套类
->
-> * 在单例类内定义私有的专门用于释放的静态成员。
->
-> * 利用程序在程序结束时析构静态变量的特性，选择最终的释放时机。
->
->
->   上述代码在单线程环境下是正确无误的，但是当拿到多线程环境下时，就会出现`race condition`，不是线程安全的。要使其线程安全，能在多线程环境下实现单例模式，我们首先想到的是利用同步机制来正确保护我们的`shared data`。可以使用双检测锁模式（DCL: Double-Checked Locking Pattern）：
->
->   ```c++
->   static Singleton* getInstance(){
->   	if(instance == NULL){
->   		Lock lock;	//基于作用域的加锁，超出作用域，自动调用析构函数解锁
->   		if(instance == NULL){
->   			instance = new Singleton();
->   		}
->   	}
->   	return instance;
->   }
->   ```
->
->   加入DCL后，其实还是有问题的，关于memory model。在某些内存模型中（虽然不常见）或者是由于编译器的优化以及运行时优化等等原因，使得instance虽然已经不是nullptr但是其所指对象还没有完成构造，这种情况下，另一个线程如果调用getInstance()就有可能使用到一个不完全初始化的对象。换句话说，就是代码中第2行：if(instance == NULL)和第六行instance = new Singleton();没有正确的同步，在某种情况下会出现new返回了地址赋值给instance变量而Singleton此时还没有构造完全，当另一个线程随后运行到第2行时将不会进入if从而返回了不完全的实例对象给用户使用，造成了严重的错误。在C++11没有出来的时候，只能靠插入两个memory barrier（内存屏障）来解决这个错误，但是C++11引进了memory model，提供了Atomic实现内存的同步访问，即不同线程总是获取对象修改前或修改后的值，无法在对象修改期间获得该对象。
->
->   ```c++
->   atomic<Widget*> Widget::pInstance{ nullptr };
->   Widget* Widget::Instance() {
->       if (pInstance == nullptr) { 
->           lock_guard<mutex> lock{ mutW }; 
->           if (pInstance == nullptr) { 
->               pInstance = new Widget(); 
->           }
->       } 
->       return pInstance;
->   }
->   ```
->
-> Best of All:
->
-> C++11规定了local static在多线程条件下的初始化行为，要求编译器保证了内部静态变量的线程安全性。在C++11标准下，《Effective C++》提出了一种更优雅的单例模式实现，使用函数内的 local static 对象。这样，只有当第一次访问getInstance()方法时才创建实例。这种方法也被称为Meyers' Singleton。C++0x之后该实现是线程安全的，C++0x之前仍需加锁。
->
-> ```c++
-> class Singleton
-> {
-> private:
-> 	Singleton() { };
-> 	~Singleton() { };
-> 	Singleton(const Singleton&);
-> 	Singleton& operator=(const Singleton&);
-> public:
-> 	static Singleton& getInstance() 
->         {
-> 		static Singleton instance;
-> 		return instance;
-> 	}
-> };
-> ```
->
-> 
-
-## 2.3 饿汉版（Eager Singleton)
-
-> 饿汉版（Eager Singleton）：指单例实例在程序运行时被立即执行初始化
->
-> ```c++
-> class Singleton
-> {
-> private:
-> 	static Singleton instance;
-> private:
-> 	Singleton();
-> 	~Singleton();
-> 	Singleton(const Singleton&);
-> 	Singleton& operator=(const Singleton&);
-> public:
-> 	static Singleton& getInstance() {
-> 		return instance;
-> 	}
-> }
->  
-> // initialize defaultly
-> Singleton Singleton::instance;
-> ```
->
-> 由于在main函数之前初始化，所以没有线程安全的问题。
-
-> 懒汉单例和饿汉单例多线程场景分析
-> 1."懒汉"模式虽然有优点，但是每次调用GetInstance()静态方法时，必须判断NULL == m_instance，使程序相对开销增大；
->
-> 2.多线程中会导致多个实例的产生，从而导致运行代码不正确以及内存的泄露；
->
-> 3.未提供释放资源的函数，存在内存泄漏问题。
->
-> 由于C++中构造函数并不是线程安全的。C++中的构造函数简单来说分两步：
->
-> 第一步：内存分配；
->
-> 第二步：初始化成员变量；
->
-> 由于多线程的关系，可能当我们在分配内存好了以后，还没来得急初始化成员变量，就进行线程切换，另外一个线程拿到所有权后，由于内存已经分配了，但是变量初始化还没进行，因此获取成员变量的相关值会发生不一致现象。
-
 # 3 C++智能指针`shared_ptr`
 
 > `shared_ptr`类对象默认初始化为一个空指针。
@@ -385,7 +142,7 @@ int main() {
 > ​	因为智能指针的构造函数是`explicit`的。因此：我们不能将一个内置指针隐式地转换为一个智能指针，必须使用**直接初始化**形式来初始化一个智能指针。
 >
 > ```c++
-> shared_ptr<int> p=new int(1024);   //错误 
+> shared_ptr<int> p = new int(1024);   //错误 
 > shared_ptr<int> p2(new int(1024)); //正确：使用直接初始化
 > ```
 >
@@ -541,90 +298,667 @@ int main() {
 [(254条消息) C++默认构造函数提供机制_系统可以提供默认的析构函数_马斯尔果的博客-CSDN博客](https://blog.csdn.net/qq_42108501/article/details/114747408)
 
 > * 如果自定义了任意的构造函数（包括拷贝构造，移动构造等），编译器将不再提供默认的无参构造。
-> * **如果自定义了一个构造函数，编译器还会提供默认的拷贝构造。**
-> * **如果自定义了一个任意一种拷贝构造，编译器将不再提供默认拷贝构造。**
-> * 如果自定义了一个析构函数，编译器将不在提供默认的析构函数。
-> * 如果自定义了拷贝赋值运算符，编译器将不再提供默认的拷贝赋值运算符。
-> * **如果定义了拷贝赋值运算符，编译器将不会生成默认的拷贝构造函数，同样地，如果定义了拷贝赋值运算符后，也不会生成默认的拷贝构造函数了。**
 >
-> 对于对象的复制操作（包括拷贝构造，移动拷贝构造，拷贝赋值运算符和移动拷贝赋值运算符），只要提供了任意一种，则编译器默认用户已经负责了对象的复制工作，将不会提供额外的默认复制操作函数。
+> * **如果自定义了一个构造函数，编译器还会提供默认的拷贝构造。**
+>
+> * **如果自定义了一个拷贝构造，编译器将不再提供默认拷贝构造和默认的移动拷贝构造以及移动赋值运算符，但依旧会提供默认的拷贝赋值。**
+>
+> * **如果自定义了一个移动拷贝构造，编译器将不再提供默认的移动拷贝构造和默认的拷贝构造函数，以及不再提供默认的拷贝赋值和默认的移动拷贝赋值。**
+>
+>   * ```c++
+>     class Test{
+>     public:
+>     	/* 显式删除该函数，则编译器将不再提供默认的任何拷贝函数 */
+>     	Test(Test&&) = delete;
+>     }
+>     ```
+>
+>
+> * **如果自定义了一个拷贝赋值运算符，则编译器将不再提供默认的拷贝赋值运算符和默认的移动拷贝赋值运算符。但依旧会提供默认的拷贝构造和移动拷贝构造。**
+>
+> * **如果自定义了一个移动拷贝赋值运算符，则编译器将不再提供默认的拷贝构造和移动拷贝构造，以及拷贝赋值运算符。**
+>
+>   * ```c++
+>     class Test{
+>     public:
+>     	/* 显式删除该函数，则编译器将不再提供默认的任何拷贝函数 */
+>     	Test& operator=(Test&&) = delete;
+>     }
+>     ```
+>
+> * **如果拷贝构造被显式删除，相当于显式地定义了拷贝构造，因此编译器不会提供默认的移动拷贝构造和移动赋值运算符，但默认的赋值运算符依旧会提供。**
+>
+>   * ```c++
+>     class Test{
+>     public:
+>     	/* 这意味着删除以下两个函数后，编译器将不再提供任何的默认拷贝工作 */
+>     	Test(const Test&) = delete;
+>     	Test& operator=(const Test&) = delete;
+>     }
+>     ```
 
-# 6 观察者模式
+# 6 抛出异常与栈展开
 
-```c++
-#include <algorithm>
-#include <vector>
-#include <stdio.h>
+原文地址： http://www.cnblogs.com/zhuyf87/archive/2012/12/23/2829725.html
 
-class Observable;
+> 抛出异常时，将暂停当前函数的执行，开始查找匹配的catch子句。首先检查throw本身是否在try块内部，如果是，检查与该try相关的catch子句，看是否可以处理该异常。如果不能处理，就退出当前函数，并且释放当前函数的内存并销毁局部对象，继续到上层的调用函数中查找，直到找到一个可以处理该异常的catch。这个过程称为栈展开（stack unwinding）。当处理该异常的catch结束之后，紧接着该catch之后的点继续执行。
+>
+> **1. 为局部对象调用析构函数**
+>
+> 如上所述，在栈展开的过程中，会释放局部对象所占用的内存并运行类类型局部对象的析构函数。但需要注意的是，如果一个块通过new动态分配内存，并且在释放该资源之前发生异常，该块因异常而退出，那么在栈展开期间不会释放该资源，编译器不会删除该指针，这样就会造成内存泄露。
+>
+> **2. 析构函数应该从不抛出异常**
+>
+> 在为某个异常进行栈展开的时候，析构函数如果又抛出自己的未经处理的另一个异常，将会导致调用标准库terminate()函数。通常terminate()函数将调用abort()函数，导致程序的非正常退出。所以析构函数应该从不抛出异常。
+>
+> **3. 异常与构造函数**
+>
+> 如果在构造函数对象时发生异常，此时该对象可能只是被部分构造，要保证能够适当的撤销这些已构造的成员。
+>
+> **4. 未捕获的异常将会终止程序**
+>
+> 不能不处理异常。如果找不到匹配的catch，程序就会调用库函数terminate().
 
-/* 抽象的观察者 */
-class Observer{
-public:
-	virtual ~Observer();
-	virtual void update() = 0;
-	
-	void observe(Observable* s);
-protected:
-    /* 观察目标 */
-	Obsersable* subject_;
-};
+# 7 `std::mem_fn`
 
-/* 被观察者 */
-class Observable{
-public:
-    void register_(Observer* x);
-    void unregister(Observer* x);
-    /* 通知每个具体的观察者 */
-    void notifyObservers(){
-        for(size_t i = 0; i < observers_.size(); ++i){
-            Observer* x = observers_[i];
-            if(x){
-                x->update();
-            }
-        }
-    }
-private:
-    std::vector<Observer*> observers_;
-};
+> `std::mem_fn`，**用以把一个成员函数转换成一个可调用的函数对象。函数对象的功能是借助成员函数来实现的。**
+>
+> 这个函数对象具备以下几个特点：
+>
+> * 函数对象类型重载的可调用运算符函数的第一个参数是成员函数对应的类类型的变量，或指针或引用。如果成员函数有参数，可调用运算符函数的第二个参数起，每个参数与成员函数的参数一一匹配。
+> * 函数对象类型有一个成员变量（result_type）， 即是成员函数的返回值类型。
+> * 如果成员函数没有参数，函数对象类型有一个成员变量（argument_type），即是成员函数对应的类类型。
+> * 如果成员函数有参数，函数对象类型有一个成员变量（first_argument_type），即是成员函数对应的类类型；还有一个成员变量（second_argument_type)，即是成员函数第一个参数的类型
+> * 函数对象类型的几个操作是异常安全的，包括移动构造函数，拷贝构造函数，拷贝赋值运算符，他们都是不跑出任何异常的。
+>
+> ```c++
+> // mem_fn example
+> #include <iostream>     // std::cout
+> #include <functional>   // std::mem_fn
+> #include <typeinfo>
+> 
+> struct char_holder {
+>   char value;
+>   char triple() {   //无参成员函数
+>       std::cout<<"call char_holder"<<std::endl;
+>       return value;
+>       }
+> };
+> 
+> 
+> struct int_holder {
+>   int value;
+>   int triple(char a) { //一个参数的成员函数
+>       std::cout<<"call int_holder with one paramter a is "<<a<<std::endl;
+>       return value * 3;
+>       }
+> };
+> 
+> 
+> struct char_int_holder {
+>   char cr;
+>   int value;
+>   int triple(char a, char b) { //两个或多个参数的成员函数
+>       std::cout<<"call char_int_holder with two paramter a is "<<a<<" b is "<<b<<std::endl;
+>       return value*3;
+>       }
+> };
+> 
+> 
+> 
+> int main () {
+>   char_holder aaa{'a'};
+>   int_holder five {5};
+>   char_int_holder afive {'a', 5};
+> 
+>   std::cout<<"call member directly==========="<<std::endl;
+>   std::cout<<aaa.triple()<<'\n';
+>   std::cout << five.triple('a') << '\n';
+>   std::cout<<afive.triple('a', 'b')<<'\n';
+> 
+>   std::cout<<"same as above using a mem_fn=========="<<std::endl;
+>   auto charTriple = std::mem_fn(&char_holder::triple);
+>   auto intTriple = std::mem_fn (&int_holder::triple);
+>   auto charIntTriple = std::mem_fn(&char_int_holder::triple);
+> 
+>   std::cout<<charTriple(aaa)<<std::endl;
+>   std::cout<<intTriple(five, 'a')<<std::endl;
+>   std::cout <<charIntTriple(afive, 'a', 'b') << '\n';
+> 
+> 
+>   return 0;
+> }
+> ```
 
-/* 从观察者中退出观察，使得被观察者不再通知该对象 */
-Observer::~Observer(){
-    subject_->unregister(this);
-}
+## 7.1 适用场景
 
-/* 注册观察对象, 使观察者可通知该对象 */
-void Observer::observe(Observable* s){
-    s->register_(this);
-    subject_ = s;
-}
-/* 将观察者对象放到被观察者的一个vector容器中 */
-void Observable::register_(Observer* x){
-    observers_.push_back(x);
-}
+> **不支持的场景**
+>
+> * 不支持全局函数
+>
+> * 不支持类protected访问权限的成员（函数或数据）
+> * 不支持类private访问权限的成员（函数或数据）
+>
+> **支持的场景**
+>
+> 1) 传入类对象
+> 2) 传入引用对象
+> 3) 传入右值
+> 4) 传入对象指针
+> 5) 传入智能指针std::shared_ptr
+> 6) 传入智能指针std::unique_ptr
+> 7) 传入派生类对象
+> 8) 带参数的成员函数
+>
+> 场景示例：
+>
+> ```c++
+> #include <functional>
+> #include <iostream>
+>  
+> int Add(int a, int b)
+> {
+>     return a + b;
+> }
+>  
+> class Age
+> {
+> public:
+>     Age(int default = 12) : m_age(default)
+>     {}
+>  
+>     bool compare(const Age& t) const
+>     {
+>         return m_age < t.m_age;
+>     }
+>  
+>     void print() const
+>     {
+>         std::cout << m_age << ' ';
+>     }
+>  
+>     int m_age;
+>  
+> protected:
+>     void add(int n)
+>     {
+>         m_age += n;
+>     }
+>  
+> private:
+>     void sub(int m)
+>     {
+>         m_age -= m;
+>     }
+> };
+>  
+> class DerivedAge : public Age
+> {
+> public:
+>     DerivedAge(int default = 22) : Age(default)
+>     {}
+> };
+>  
+> int main(int argc, char* argv[])
+> {
+>     // 0.不支持的示例
+>     {
+>         // 1.不支持全局函数
+>         // auto globalFunc = std::mem_fn(Add); // ERROR: 语法无法通过
+>         // 2.不支持类protected访问权限的函数
+>         // auto addFunc = std::mem_fn(&Age::add); // ERROR: 语法无法通过
+>         // 3.不支持类private访问权限的函数
+>         // auto subFunc = std::mem_fn(&Age::sub); // ERROR: 语法无法通过
+>     }
+>     // 1.成员函数示例
+>     {
+>         auto memFunc = std::mem_fn(&Age::print);
+>  
+>         // 方式一：传入类对象
+>         Age obja{ 18 };
+>         memFunc(obja);
+>  
+>         Age& refObj = obja;
+>         refObj.m_age = 28;
+>         // 方式二：传入引用对象
+>         memFunc(refObj);
+>  
+>         // 方式三：传入右值
+>         Age objb{ 38 };
+>         memFunc(std::move(objb));
+>  
+>         // 方式四：传入对象指针
+>         Age objc{ 48 };
+>         memFunc(&objc);
+>  
+>         // 方式五：传入智能指针std::shared_ptr
+>         std::shared_ptr<Age> pAge1 = std::make_shared<Age>(58);
+>         memFunc(pAge1);
+>  
+>         // 方式六：传入智能指针std::unique_ptr
+>         std::unique_ptr<Age> pAge2 = std::make_unique<Age>(68);
+>         memFunc(pAge2);
+>  
+>         // 方式七：传入派生类对象
+>         DerivedAge aged{ 78 };
+>         memFunc(aged);
+>         
+>         // 方式八：带参数成员函数
+>         auto memFuncWithParams = std::mem_fn(&Age::compare);
+>         std::cout << memFuncWithParams(Age{ 25 }, Age{ 35 }) << std::endl;
+>     }
+>  
+>     std::cout << std::endl;
+>  
+>     // 2.成员变量示例
+>     {
+>         auto memData = std::mem_fn(&Age::m_age);
+>  
+>         // 方式一：传入类对象
+>         Age obja{ 19 };
+>         std::cout << memData(obja) << ' ';
+>  
+>         Age& refObj = obja;
+>         refObj.m_age = 29;
+>         // 方式二：传入引用对象
+>         std::cout << memData(refObj) << ' ';
+>  
+>         // 方式三：传入右值
+>         Age objb{ 39 };
+>         std::cout << memData(std::move(objb)) << ' ';
+>  
+>         // 方式四：传入对象指针
+>         Age objc{ 49 };
+>         std::cout << memData(&objc) << ' ';
+>  
+>         // 方式五：传入智能指针std::shared_ptr
+>         std::shared_ptr<Age> pAge1 = std::make_shared<Age>(59);
+>         std::cout << memData(pAge1) << ' ';
+>  
+>         // 方式六：传入智能指针std::unique_ptr
+>         std::unique_ptr<Age> pAge2 = std::make_unique<Age>(69);
+>         std::cout << memData(pAge2) << ' ';
+>  
+>         // 方式七：传入派生类对象
+>         DerivedAge aged{ 79 };
+>         std::cout << memData(aged) << ' ';
+>     }
+>  
+>     return 0;
+> }
+>  
+> /* run output:
+> 18 28 38 48 58 68 78 1
+> 19 29 39 49 59 69 79
+> */
+> ```
+>
+> 应用示例：
+>
+> ```c++
+> #include <functional>
+> #include <iostream>
+> #include <algorithm>
+> #include <vector>
+>  
+> class Age
+> {
+> public:
+>     Age(int v) : m_age(v)
+>     {}
+>  
+>     bool compare(const Age& t) const
+>     {
+>         return m_age < t.m_age;
+>     }
+>  
+>     void print() const
+>     {
+>         std::cout << m_age << ' ';
+>     }
+>  
+>     int m_age;
+> };
+>  
+> bool compare(const Age& t1, const Age& t2)
+> {
+>     return t1.compare(t2);
+> }
+>  
+> int main(int argc, char* argv[])
+> {
+>     // 以前写法
+>     {
+>         std::vector<Age> ages{ 1, 7, 19, 27, 39, 16, 13, 18 };
+>         std::sort(ages.begin(), ages.end(), [&](const Age& objA, const Age& objB) {
+>             return compare(objA, objB);
+>             });
+>         for (auto item : ages)
+>         {
+>             item.print();
+>         }
+>         std::cout << std::endl;
+>     }
+>     // 利用std::mem_fn写法
+>     {
+>         std::vector<Age> ages{ 100, 70, 290, 170, 390, 160, 300, 180 };
+>         std::sort(ages.begin(), ages.end(), std::mem_fn(&Age::compare));
+>         std::for_each(ages.begin(), ages.end(), std::mem_fn(&Age::print));
+>         std::cout << std::endl;
+>     }
+>  
+>     return 0;
+> }
+>  
+> /* run output:
+> 1 7 13 16 18 19 27 39
+> 70 100 160 170 180 290 300 390
+> */
+> ```
 
-void Observable::unregister(Observer* x){
-    std::vector<Observer*>::iterator it = std::find(observers_.begin(), observers_.end(), x);
-    if(it != observers_.end()){
-        std::swap(*it, observers_.back());
-        observers_.pop_back();
-    }
-}
+# 8 `weak_ptr`
 
-// 具体的观察者
-class Foo : public Observer{
-    virtual void update(){
-        printf("Foo::update() %p\n", this);
-    }
-};
+> C++ Prime P420 
 
-int main(){
-    Foo* p = new Foo;
-    Observable subject;
-    p->observe(&subject);
-    subject.notifyObservers();
-    delete p;
-    subject.notifyObservers();
-}
-```
+# 9 `std::distance()`
 
+> [C++ STL distance()函数用法详解（一看就懂） (biancheng.net)](http://c.biancheng.net/view/7372.html)
+
+# 10 `std::advance()`函数
+
+> [C++ STL advance()函数用法详解 (biancheng.net)](http://c.biancheng.net/view/7370.html)
+
+# 11 C++中的`new`、`operator new`与`placement new`
+
+> [C++中的new、operator new与placement new - 阿凡卢 - 博客园 (cnblogs.com)](https://www.cnblogs.com/luxiaoxun/archive/2012/08/10/2631812.html)
+>
+> **C++中的new/delete与operator new/operator delete**
+>
+> new operator/delete operator就是new和delete操作符，而operator new/operator delete是函数。
+>
+> new operator
+> （1）调用operator new分配足够的空间，并调用相关对象的构造函数
+> （2）不可以被重载
+>
+> operator new
+> （1）只分配所要求的空间，不调用相关对象的构造函数。当无法满足所要求分配的空间时，则
+>     ->如果有`new_handler`，则调用new_handler，否则
+>     ->如果没要求不抛出异常（以nothrow参数表达），则执行bad_alloc异常，否则
+>     ->返回0
+> （2）可以被重载
+> （3）重载时，返回类型必须声明为void*
+> （4）重载时，第一个参数类型必须为表达要求分配空间的大小（字节），类型为size_t
+> （5）重载时，可以带其它参数
+>
+> delete 与 delete operator类似
+>
+> ```c++
+> #include <iostream>
+> #include <string>
+> using namespace std;
+> 
+> class X
+> {
+> public:
+>     X() { cout<<"constructor of X"<<endl; }
+>     ~X() { cout<<"destructor of X"<<endl;}
+> 
+>     void* operator new(size_t size, string str)
+>     {
+>         cout<<"operator new size "<<size<<" with string "<<str<<endl;
+>         return ::operator new(size);
+>     }
+> 
+>     void operator delete(void* pointee)
+>     {
+>         cout<<"operator delete"<<endl;
+>         ::operator delete(pointee);
+>     }
+> private:
+>     int num;
+> };
+> 
+> int main()
+> {
+>     X *px = new("A new class") X;
+>     delete px;
+> 
+>     return 0;
+> }
+> ```
+>
+> X* px = new X; //该行代码中的new为new operator，它将调用类X中的operator new，为该类的对象分配空间，然后调用当前实例的构造函数。
+> delete px; //该行代码中的delete为delete operator，它将调用该实例的析构函数，然后调用类X中的operator delete，以释放该实例占用的空间。
+>
+> new operator与delete operator的行为是不能够也不应该被改变，这是C++标准作出的承诺。而operator new与operator delete和C语言中的malloc与free对应，只负责分配及释放空间。但使用operator new分配的空间必须使用operator delete来释放，而不能使用free，因为它们对内存使用的登记方式不同。反过来亦是一样。你可以重载operator new和operator delete以实现对内存管理的不同要求，但你不能重载new operator或delete operator以改变它们的行为。
+>
+> 为什么有必要写自己的operator new和operator delete？
+> 答案通常是：为了效率。缺省的operator new和operator delete具有非常好的通用性，它的这种灵活性也使得在某些特定的场合下，可以进一步改善它的性能。尤其在那些需要动态分配大量的但很小的对象的应用程序里，情况更是如此。具体可参考《Effective C++》中的第二章内存管理。
+>
+> **Placement new的含义**
+>
+> placement new 是重载operator new 的一个标准、全局的版本，它不能够被自定义的版本代替（不像普通版本的operator new和operator delete能够被替换）。
+>
+> void *operator new( size_t, void * p ) throw() { return p; }
+>
+> placement new的执行忽略了size_t参数，只返还第二个参数。其结果是允许用户把一个对象放到一个特定的地方，达到调用构造函数的效果。和其他普通的new不同的是，它在括号里多了另外一个参数。比如：
+>
+> Widget * p = new Widget;          //ordinary new
+>
+> pi = new (ptr) int; pi = new (ptr) int;   //placement new
+>
+> 括号里的参数ptr是一个指针，它指向一个内存缓冲器，placement new将在这个缓冲器上分配一个对象。Placement new的返回值是这个被构造对象的地址(比如括号中的传递参数)。placement new主要适用于：在对时间要求非常高的应用程序中，因为这些程序分配的时间是确定的；长时间运行而不被打断的程序；以及执行一个垃圾收集器 (garbage collector)。
+>
+> **new 、operator new 和 placement new 区别**
+>
+> （1）new ：不能被重载，其行为总是一致的。它先调用operator new分配内存，然后调用构造函数初始化那段内存。
+>
+> new 操作符的执行过程：
+> \1. 调用operator new分配内存 ；
+> \2. 调用构造函数生成类对象；
+> \3. 返回相应指针。
+>
+> （2）operator new：要实现不同的内存分配行为，应该重载operator new，而不是new。
+>
+> operator new就像operator + 一样，是可以重载的。如果类中没有重载operator new，那么调用的就是全局的::operator new来完成堆的分配。同理，operator new[]、operator delete、operator delete[]也是可以重载的。
+>
+> （3）placement new：只是operator new重载的一个版本。它并不分配内存，只是返回指向已经分配好的某段内存的一个指针。因此不能删除它，但需要调用对象的析构函数。
+>
+> 如果你想在已经分配的内存中创建一个对象，使用new时行不通的。也就是说placement new允许你在一个已经分配好的内存中（栈或者堆中）构造一个新的对象。原型中void* p实际上就是指向一个已经分配好的内存缓冲区的的首地址。
+>
+> **Placement new 存在的理由**
+>
+> 1.用placement new 解决buffer的问题
+>
+> 问题描述：用new分配的数组缓冲时，由于调用了默认构造函数，因此执行效率上不佳。若没有默认构造函数则会发生编译时错误。如果你想在预分配的内存上创建对象，用缺省的new操作符是行不通的。要解决这个问题，你可以用placement new构造。它允许你构造一个新对象到预分配的内存上。
+>
+> 2.增大时空效率的问题
+>
+> 使用new操作符分配内存需要在堆中查找足够大的剩余空间，显然这个操作速度是很慢的，而且有可能出现无法分配内存的异常（空间不够）。placement new就可以解决这个问题。我们构造对象都是在一个预先准备好了的内存缓冲区中进行，不需要查找内存，内存分配的时间是常数；而且不会出现在程序运行中途出现内存不足的异常。所以，placement new非常适合那些对时间要求比较高，长时间运行不希望被打断的应用程序。
+>
+> **Placement new使用步骤**
+>
+> 在很多情况下，placement new的使用方法和其他普通的new有所不同。这里提供了它的使用步骤。
+>
+> 第一步 缓存提前分配
+>
+> 有三种方式：
+>
+> 1.为了保证通过placement new使用的缓存区的memory alignment(内存队列)正确准备，使用普通的new来分配它：在堆上进行分配
+> class Task ;
+> char * buff = new [sizeof(Task)]; //分配内存
+> (请注意auto或者static内存并非都正确地为每一个对象类型排列，所以，你将不能以placement new使用它们。)
+>
+> 2.在栈上进行分配
+> class Task ;
+> char buf[N*sizeof(Task)]; //分配内存
+>
+> 3.还有一种方式，就是直接通过地址来使用。(必须是有意义的地址)
+> void* buf = reinterpret_cast<void*> (0xF00F);
+>
+> 第二步：对象的分配
+>
+> 在刚才已分配的缓存区调用placement new来构造一个对象。
+> Task *ptask = new (buf) Task
+>
+> 第三步：使用
+>
+> 按照普通方式使用分配的对象：
+>
+> ptask->memberfunction();
+>
+> ptask-> member;
+>
+> //...
+>
+> 第四步：对象的析构
+>
+> 一旦你使用完这个对象，你必须调用它的析构函数来毁灭它。按照下面的方式调用析构函数：
+> ptask->~Task(); //调用外在的析构函数
+>
+> 第五步：释放
+>
+> 你可以反复利用缓存并给它分配一个新的对象（重复步骤2，3，4）如果你不打算再次使用这个缓存，你可以象这样释放它：delete [] buf;
+>
+> 跳过任何步骤就可能导致运行时间的崩溃，内存泄露，以及其它的意想不到的情况。如果你确实需要使用placement new，请认真遵循以上的步骤。
+>
+> ```c++
+> #include <iostream>
+> using namespace std;
+> 
+> class X
+> {
+> public:
+>     X() { cout<<"constructor of X"<<endl; }
+>     ~X() { cout<<"destructor of X"<<endl;}
+> 
+>     void SetNum(int n)
+>     {
+>         num = n;
+>     }
+> 
+>     int GetNum()
+>     {
+>         return num;
+>     }
+> 
+> private:
+>     int num;
+> };
+> 
+> int main()
+> {
+>     char* buf = new char[sizeof(X)];
+>     X *px = new(buf) X;
+>     px->SetNum(10);
+>     cout<<px->GetNum()<<endl;
+>     px->~X();
+>     delete []buf;
+> 
+>     return 0;
+> }
+> ```
+
+# 12 位操作
+
+> * `x & (-x)`可以获得`x`的二进制表示中最低位的1的位置。这是因为`(-x)`在计算机中以补码的形式存储，它等于`~b + 1`。如果和`~b`进行按位与运算，那么会得到0，但是当`~b`增加1之后，最低位的连续的1都变为了0，而最低位的0变为1，对应到`b`中即为最低位的1，因此当`b`和`~b + 1`进行按位与运算时，只有最低的1会被保留。
+>
+> * `x & (x - 1)`可以将`x`的二进制表示中的最低位的1置为0.·
+>
+> * `(1 << n) - 1`可以获得一个长度为$n$的，且每位上都是$1$的二进制数。
+>
+> * 除了位或（`|`）操作，可以利用亦或（`^`）操作来置位（只能对原本该位确定未置位的情况下使用）。
+>
+>   * ```c++
+>     int main(){
+>     	// a: 0001 0101
+>     	char a = 13;
+>     	// b: 0010 0000
+>     	char b = 16;
+>     	//对第6位置位
+>     	a ^= b;
+>     	//对第6位取消置位
+>     	a ^= b;
+>     }
+>     ```
+>
+>   * `a ^ a = 0`，`a ^ 0 = a`，`a ^ b ^ a = b`，`a ^ (b ^ c) = (a ^ b) ^ c`
+
+## 12.1 `__builtin_*位运算函数`
+
+> 以`__builtin`开头的函数，是一种相当神奇的位运算函数，所有带`ll`的名称，均为`unsigned long long`类型，否则当作`unsigned int`类型。
+>
+> *  `__biltin_ctz(unsigned int)/__bilt_ctzll(unsigned long long)`
+>
+>   * 用法：返回括号内数的二进制表示形式中末尾0的个数
+>
+>   * ```c++
+>     #include <bits/stdc++.h>
+>     using namespace std;
+>       
+>     int main(){
+>     	ios::sync_with_stdio(0);
+>     	cin.tie(0);
+>     	cout << __builtin_ctz(8) << endl; // 3 8 = 1000
+>     	return 0;
+>     }
+>     ```
+>
+> * `__builtin_clz(unsigned int) / __builtin_clzll(unsigned long long)`
+>
+>   * 用法：返回括号内数的二进制表示的前导0的个数
+>
+>   * ```c++
+>     #include <bits/stdc++.h>
+>     using namespace std;
+>     int main(){
+>     	/*
+>     	输出为28
+>     	8 = 0000 0000 0000 0000 0000 0000 0000 1000，整型(int)为32位
+>     	*/
+>     	cout << __builtin_clz(8) << endl;
+>     	return 0;
+>     }
+>     ```
+>
+> * `__builtin_popcount(unsigned int) / __builtin_popcountll(unsigned long long)`
+>
+>   * 用法：返回括号内数的二进制表示数1的个数
+>
+>   * ```
+>     #include <bits/stdc++.h>
+>     using namespace std;
+>       
+>     int main(){
+>     	/* 
+>     	输出为4
+>     	15 = 1111
+>     	*/
+>     	cout <<__builtin_popcount(15) << endl;
+>     	return 0;
+>     }
+>     ```
+>
+> * `__builtin_parity(unsigned int) / __builtin_parity(unsigned long long)`
+>
+>   * 用法：判断括号中数的二进制数1的个数的奇偶性（偶数返回0，奇数返回1）
+>
+> * `__builtin_ffs(int) / __builtin_ffsll(long long) `
+>
+>   * 用法：返回括号中数的二进制表示的最后一个1在第几位（从后往前算）
+>
+> * `__builtin_sqrt()/__builtin_sqrtf()`
+>
+>   * 用法：快速开平方
+
+# 趣味快谈
+
+## `cin.tie(0)`
+
+> 
+>
+> ​	`cin.tie(0)`操作解除`cin`和`cout`关联（绑定时，`cin`之前会将`cout`输出缓冲区的数据刷新到输出文件），可以避免当`cout`缓冲区的数据没有刷新到文件中时使用了`cin`，这样就可能发生数据不一致，通过绑定可以在输入前将`cout`数据输出到文件中（其实是输出到内核页缓冲区中）。默认是绑定的。
+
+## `ios::sync_with_stdio(false)`
+
+![img](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/20210711101338148.png)

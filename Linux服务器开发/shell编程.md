@@ -1107,6 +1107,8 @@ done
 >
 > -x	提供跟踪执行信息，**将执行的每一条命令和结果依次打印出来。**
 >
+> 在"set -e"之后出现的代码，一旦出现了返回值非零，整个脚本就会立即退出
+>
 > 这些选项有三种常见的使用方法：
 >
 > 1) 在命令行提供参数。如：
@@ -1125,7 +1127,7 @@ done
 >
 >    ```shell
 >    #! /bin/sh
->                
+>    
 >    if [ -z "$1" ]; then
 >    	set -x
 >    	echo "ERROR: Insufficient Args."
@@ -1698,7 +1700,7 @@ itcast$ grep 'w(es)t.*\1' aa
 >
 >    ```c
 >    int regcomp(regex_t* compiled, const char *pattern, int cflags);
->       
+>          
 >    /*
 >    regex_t	是一个结构体数据类型，用来存放编译后的正则表达式，它的成员re_nsub用来存储正则表达式中的子正则表达式的个数，正则表达式就是用圆括号包起来的部分表达式。
 >    pattern  是指向我们写好的正则表达式的指针
@@ -1750,7 +1752,7 @@ itcast$ grep 'w(es)t.*\1' aa
 >
 >    ```c
 >    size_t regerror (int errcode, regex_t *compiled, char *buffer, size_t length)
->       
+>          
 >    /*
 >    errcode 	是由regcomp 和 regexec 函数返回的错误代号。
 >    compiled 	是已经用regcomp函数编译好的正则表达式，这个值可以为NULL。
@@ -1859,7 +1861,7 @@ itcast$ grep 'w(es)t.*\1' aa
 > $ cat /etc/passwd | sort -t : -k3 -n
 > ```
 
-# 4 uniq命令
+# 4 uniqe命令
 
 > 去除重复的行，前提是重复的行连续
 >

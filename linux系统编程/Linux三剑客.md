@@ -731,7 +731,7 @@ $ awk -F ":" 'BEGIN{printf "%-20s\t %-20s\t %-20s\t %-20s\t %-20s\t %-20s\t %-20
 > >   * ```shell
 > >     # 打印以games开头的行的第一列和最后一列
 > >     $ awk -F ":" '/^games/{print $1, $NF}' pwd.txt
-> >             
+> >                 
 > >     # 多个模式匹配用逗号隔开，表示从匹配前一个模式的后到匹配后一个模式的行的所有行
 > >     $ awk -F ":" '/^games/,/^music/{print $1, $NF}' pwd.txt
 > >     ```

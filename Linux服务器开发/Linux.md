@@ -956,7 +956,7 @@
 >
 > ​	**针对阻塞I/O执行的系统调用可能因为无法立即完成而被操作系统挂起，直到等待的事件发生为止。**比如，客户端通过connect向服务器发起连接时，connect将首先发送同步报文给服务器，然后等待服务器返回确认报文。如果服务器的确认报文段没有立即到达客户端，则connect调用将被挂起，直到客户端收到确认报文段并唤醒connect调用。**socket的基础API中，可能被阻塞的系统调用包括accept、send、recv和connect。**
 >
-> ​	针对非阻塞I/O执行的系统调用则总是立即返回，而不管事件是否已经发生。**如果事件没有立即发生，这些系统调用就返回-1，和出错的情况一样。**此时我们必须根据errno来区分这两种情况。**对accep、send和recv而言，事件未发生时errno通常被设置成EAGAIN（意为“再来一次”）或者EWOULDBLOCK（意为“期望阻塞”）；对connect而言，errno则被设置成EINPROGRESS（意为“在处理中”）。**
+> ​	针对非阻塞I/O执行的系统调用则总是立即返回，而不管事件是否已经发生。**如果事件没有立即发生，这些系统调用就返回-1，和出错的情况一样。**此时我们必须根据errno来区分这两种情况。**对accept、send和recv而言，事件未发生时errno通常被设置成EAGAIN（意为“再来一次”）或者EWOULDBLOCK（意为“期望阻塞”）；对connect而言，errno则被设置成EINPROGRESS（意为“在处理中”）。**
 >
 > ​	很显然，**我们只有在事件已经发生的情况下操作非阻塞I/O（读、写等），才能提高程序的效率。**因此，非阻塞I/O通常要和其它I/O通知机制一起使用，比如I/O复用和SIGIO信号。
 >
@@ -1024,7 +1024,7 @@
 
 ### 3.4.3 模拟Proactor模式
 
-> ​	其原理是：主线程执行数据读写操作，读写完成之后，主线程向工作线程通知这一“完成事件”。那么从工作线程的角度来看，它们就直接获得了数据读写的结果，接下来要做的只是对读写的结果进行逻辑处理。
+> ​	其原理是：**主线程执行数据读写操作**，读写完成之后，主线程向工作线程通知这一“完成事件”。那么从工作线程的角度来看，它们就直接获得了数据读写的结果，接下来要做的只是对读写的结果进行逻辑处理。
 >
 > ​	使用同步I/O模型（仍然以epoll_wait为例）模拟出的Proactor模式的工作流程如下：
 >
@@ -1776,6 +1776,8 @@
 > ​	3）timeout参数指定poll的超时值，单位是毫秒。**当timeout为-1时，poll调用将永远阻塞，直到某个事件发生；当timeout为0时，poll调用将立即返回。**
 >
 > ​	poll系统调用的返回值的含义与select相同。
+>
+> ![image-20230811171458762](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230811171458762.png)
 
 ## 4.3 epoll序列系统调用
 
@@ -5166,7 +5168,7 @@
 >   	shmatt_t shm_nattach;	/* 目前关联到此共享内存的进程数量 */
 >   	/* 省略一些填充字段 */
 >   };
->                 
+>                         
 >   /* 该结构体用于描述IPC对象（信号量、共享内存和消息队列）的权限 */
 >   struct ipc_perm
 >   {
@@ -6469,7 +6471,7 @@
 
 ### 9.8.1 可重入函数
 
-> ​	如果一个函数能被多个线程同时调用且不发生竞态条件，则我们称它是线程安全的（thread safe），或者说它是可重入函数。Linux库函数只有一小部分是不可重入的，比如4.1.4小节讨论的inet_ntoa函数，以及getservbyname和getservbyport函数。这些库函数之所以不可重入，主要是因为其内部使用了静态变量。不过Linux对很多不可重入的库函数提供了可重入版本，这些可重入版本的函数名是在原函数名尾部加上\_r。比如函数localtime对应的可重入函数是localtime_r。在多线程程序中调用库函数，一定要使用其可重入版本，否则可能导致预想不到的结果。
+> ​	如果一个函数能被多个线程同时调用且不发生竞态条件，则我们称它是线程安全的（thread safe），或者说它是可重入函数。Linux库函数只有一小部分是不可重入的，比如4.1.4小节讨论的inet_ntoa函数，以及getservbyname和getservbyport函数。这些库函数之所以不可重入，主要是因为其内部使用了静态变量。不过Linux对很多不可重入的库函数提供了可重入版本，**这些可重入版本的函数名是在原函数名尾部加上\_r**。比如函数localtime对应的可重入函数是localtime_r。在多线程程序中调用库函数，一定要使用其可重入版本，否则可能导致预想不到的结果。
 
 ### 9.8.2 线程和进程
 
@@ -8500,7 +8502,7 @@
 
 ## 12.4 strace
 
-> ​	`strace`是测试服务器性能的重要工具。它跟踪程序运行过程中执行的系统调用和接收到的信号，并将**系统调用名、参数、返回值及信号名**输出到标准输出或者指定的文件。
+> ​	`strace`是测试服务器性能的重要工具。它跟踪程序运行过程中执行的**系统调用和接收到的信号**，并将**系统调用名、参数、返回值及信号名**输出到标准输出或者指定的文件。
 >
 > ​	`strace`命令常用的选项包括：
 >
@@ -8546,3 +8548,246 @@
 > ```
 >
 > ​	`strace`命令对于不同的参数类型将有不同的输出方式，比如：
+>
+> * 对于C风格的字符串，`strace`将输出字符串的内容。默认的最大输出长度是32字节，过长的部分`strace`会使用“…”省略。比如，`ls -l`命令在运行过程中将读取`/etc/passwd`文件：
+>
+>   * ```shell
+>     $ strace ls -l
+>     read(4, "root:x:0:0:root:/root:/bin/bash\n"..., 4096) = 2342
+>     ```
+>
+>   需要注意的是，文件名并不被`strace`当作C风格的字符串，其内容总是被完整地输出。
+>
+> * 对于结构体，`strace`将用`{}`输出该结构体的每个字段，并用","将每个字段隔开。对于字段较多的结构体，`strace`将用`"..."`省略部分输出。比如：
+>
+>   * ```shell
+>     $ strace ls -l /dev/null
+>     lstat64("/dev/null", {st_mode=S_IFCHR|0666, st_rdev=makedev(1, 3), ...}) = 0
+>     ```
+>
+>     ​	上面的`strace`输出显示，`lstat64`系统调用的第一个参数是字符串输入参数`"/dev/null"`；第二个参数是`stat`结构体类型的输出参数（指针），`strace`仅显示了该结构体参数的两个字段：`st_mode`和`st_rdev`。需要注意的是，当系统调用失败时，输出参数将显示为传入前的值。
+>
+> * 对于位集合参数（比如信号集类型sigset_t），`strace`将用`"[]"`输出该集合中所有被置1的位，并用空格将每一项隔开。假设某个程序有如下代码：
+>
+>   * ```c
+>     sigset_t set;
+>     sigemptyset(&set);
+>     sigaddset(&set, SIGQUIT);
+>     sigaddset(&set, ?SIGUSR1);
+>     sigprocmask(SIG_BLOCK, &set, NULL);
+>     ```
+>
+>     则针对该程序的`strace`命令将输出如下内容：
+>
+>     ```shell
+>     rt_sigprocmask(SIG_BLOCK, [QUIT USR1], NULL, 8) = 0
+>     ```
+>
+>   针对其他参数类型的输出方式，可以参考`strace`的man手册，这里不再赘述。对于程序收到的信号，`strace`将该信号的值及其描述。比如，我们在终端上运行`"sleep 100"`命令，然后在另一个终端上使用`strace`命令跟踪该进程，接着用`"Ctrl+C"`终止`"sleep 100"`进程以观察`strace`的输出。具体操作如下：
+>
+>   ```shell
+>   $ sleep 100
+>   $ ps -ef | grep sleep
+>   shuang 29127 29064 0 03:45 pts/7 00:00:00 sleep 100
+>   $ strace -p 29127
+>   Process 29127 attached
+>   restart_syscall(<... resuming interrupted call ...>) = ? ERESTART_RESTARTBLOCK
+>   (Interrupted by signal)(此时用"Ctrl+C"中断"sleep 100"进程)
+>    	--- SIGINT {si_signo=SIGINT, si_code=SI_KERNEL} ---
+>       +++ killed by SIGINT +++
+>   ```
+>
+>   ​	下面考虑一个使用`strace`命令的完整、具体的例子：查看`websrv`服务器在处理客户连接和数据时使用系统调用的情况。具体操作如下：
+>
+>   ```shell
+>   $ ./websrv 127.0.0.1 13579
+>   $ ps -ef | grep websrv
+>   shuang 30526 29064 0 05:19 pts/7 00:00:00 ./websrv 127.0.0.1 13579
+>   $ sudo strace -p 30526
+>   ```
+>
+>   ![image-20230628181632030](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230628181632030.png)
+>
+>   ​	可见，服务器当前正在执行`epoll_wait`系统调用以等待客户请求。值得注意的是，`epoll_wait`的第一个参数（标识`epoll`内核事件表的文件描述符）的值是4，这和前面`lsof`命令的输出一致。接下来对服务器发起一个连接并发送HTTP请求，此时`strace`命令的输出如上图所示。
+>
+>   上面的输出分为五个部分，我们用空行将每个部分隔开。
+>
+> ​    第一部分从第一次`epoll_wait`系统调用开始。此次`epoll_wait`调用检测到了文件描述符3上的`EPOLLIN`事件。从之前`lsof`的输出来看，文件描述符3正是服务器的监听`socket`。因此，这个事件表示有新客户连接到来，于是websrv服务器对监听`socket`执行了`accept`调用，`accept`返回一个新的连接`socket`，其值为5.接着，服务器清除这个新的`socket`上的错误，设置其`SO_REUSEADDR`属性，然后往`epoll`内核事件表中注册该`socket`上的`EPOLLRDHP`和`EPOLLONESHOT`两个事件，最后设置新`socket`为非阻塞的。
+>
+> ​    第二部分从第二次`epoll_wait`系统调用开始。此次`epoll_wait`调用检测到了文件描述符5上的`EPOLLIN`事件，这表示客户端的第一行数据到达了，于是服务器执行了两次`recv`系统调用来接收数据。第一次`recv`调用读取到了38字节的客户数据，即"GET http://localhost/a.html HTTP/1.1\r\n"。第二次`recv`调用失败了，`errno`是`EAGAIN`，这表示目前没有更多的客户数据可读。此后，服务器调用了`futex`函数对互斥锁解锁，以唤醒等待互斥锁的线程。可见，POSIX线程库中的`pthread_mutex_unlock`函数在内部调用了`futex`函数。
+>
+> ​	第三、四部分的内容和第二部分类似。
+>
+> ​	第五部分中，`epoll_wait`调用检测到了文件描述符5上的`EPOLLOUT`事件，这表示工作线程正确地处理了客户请求，并准备好了待发送的数据，因此主线程开始执行`writev`系统调用往客户端写入HTTP应答。最后，服务器从`epoll`内核事件表中移除文件描述符5上的所有注册事件，并关闭该文件描述符。
+>
+> ​	由此可见，`strace	`命令使我们能够清楚地查看每次系统调用发生的时机，以及相关参数的值，这比`gdb`调试更方便。
+
+# 13 netstat
+
+> ​	`netstat`是一个功能很强大的网络信息统计工具。它可以打印本地网卡接口上的全部连接、路由表信息、网卡接口信息等。对于本书而言，我们主要利用的是上述功能中的第一个，即显示TCP连接及其状态信息。毕竟，要获得路由表信息和网卡接口信息，我们可以通过输出内容更丰富的`route`和`ifconfig`命令。
+>
+> ​	`netstat`命令常用的选项包括：
+>
+> * `-n`，使用IP地址表示主机，而不是主机名；使用数字表示端口号，而不是服务名称。
+>
+> * `-a`，显示结果中也包含监听`socket`。
+>
+> * `-t`，仅显示TCP连接。
+>
+> * `-r`，显示路由信息。
+>
+> * `-i`，显示网卡接口的数据流量。
+>
+> * `-c`，每隔1s输出一次。
+>
+> * `-o`，显示socket定时器（比如保活定时器）的信息。
+>
+> * `-p`，显示socket所属的进程的PID和名字。
+>
+>   下面我们运行websrv服务器，并执行`telnet`命令对它发起一个连接请求：
+>
+>   ```shell
+>   $ ./websrv 127.0.0.1 13579 &
+>   $ telenet 127.0.0.1 13579
+>   ```
+>
+>   然后执行命令`netstat -nat | grep 127.0.0.1:13579`查看连接状态，结果如下：
+>
+>   ![image-20230630164537159](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230630164537159.png)
+>
+>   由上结果可见，`netstat`的每行输出都包含如下6个字段（默认情况）：
+>
+>   * Proto，协议名。
+>   * Recv-Q，socket内核接收缓冲区中尚未被应用程序读取的数据量。
+>   * Send-Q，未被对方确认的数据量。
+>   * Local Address，本端的IP地址和端口号。
+>   * Foreign Address，对方的IP地址和端口号。
+>   * State，socket的状态。对于无状态协议，比如UDP协议，这一字段显示为空。而对面向连接的协议而言，`netstat`支持的State包括ESTABLISHED、SYN_SENT、SYN_RCVD、FIN_WAIT1、FIN_WAIT2、TIME_WAIT、CLOSE、CLOSE_WAIT、LAST_ACK、LISTEN、CLOSING、UNKNOWN。
+>
+>   上面的输出中，第一行表示本地socket地址127.0.0.1:13579处于LISTEN状态，并等待任何远端socket（用0.0.0.0:*表示）对它发起连接。第2行表示服务器和远端地址127.0.0.1:48220建立了一个连接。第3行只是从客户端的角度重复输出第2行信息表示的这个连接，因为我们是在同一台机器上运行服务器程序（websrv）和客户端程序（telnet）的。
+>
+>   ​	在服务器程序开发过程中，我们一定要确保每个连接在任一时刻都处于我们期望的状态。因此我们应该习惯于使用`netstat`命令。
+
+# 14 vmstat
+
+> ​	`vmstat`是virtual memory statistics的缩写，它能实时输出系统的各种资源的使用情况，比如进程信息、内存使用、CPU使用率以及I/O使用情况。
+>
+> `vmstat`命令常用的选项和参数包括：
+>
+> * `-f`，显示系统自启动以来执行的`fork`次数。
+>
+> * `-s`，显示内存相关的统计信息以及各种系统活动的数量（比如CPU上下文切换次数）。
+>
+> * `-d`，显示磁盘相关的统计信息。
+>
+> * `-p`，显示指定磁盘分区的统计信息。
+>
+> * `-S`，使用指定的单位来显示。参数k、K、m、M分别代表1000、1024、1000000和1048576字节。
+>
+> * `delay`，采样间隔（单位是s），即每隔`delay`的时间输出一次统计信息。
+>
+> * `count`，采样次数，即共输出`count`次统计信息。
+>
+>   默认情况下，`vmstat`输出的内容相当丰富。请看下面的示例：
+>
+>   ![image-20230630172826208](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230630172826208.png)
+>
+>   注意，第一行输出是自系统启动以来的平均结果，而后面的输出则是采样间隔内的平均结果。`vmstat`的每条输出都包含6个字段，它们的含义分别是：
+>
+>   * `procs`，进程信息。"r"表示等待运行的进程数目；"b"表示处于不可中断睡眠状态的进程数目。
+>   * `memory`，内存信息，，各项的单位都是千字节（KB）。"swpd"表示虚拟内存的使用数量。"free"表示空闲内存的数量。"buff"表示作为"buffer cache"的内存数量。从磁盘读入的数据可能被保存在"buffer cache"中，以便下一次快速访问。"cache"表示作为"page cache"的内存数量。待写入磁盘的数据将首先被放到"page cache"中，然后由磁盘中断程序写入磁盘。
+>   * `swap`，交换分区（虚拟内存）的使用信息，各项的单位都是KB/s。"si"表示由磁盘交换至内存的速率；"so"表示数据由内存交换至磁盘的速率。如果这两个值经常发生变化，则说明内存不足。
+>   * `io`，块设备的使用信息，单位是block/s。"bi"表示从块设备读入块的速率；"bo"表示向块设备写入块的速率。
+>   * `system`，系统信息。"in"表示每秒发生的中断次数；"cs"表示每秒发生上下文切换（进程切换）次数。
+>   * `cpu`，CPU使用信息。"us"表示系统所有进程运行在用户空间的时间占CPU总运行时间的比例；"sy"表示系统所有进程运行在内核空间的时间占CPU总运行时间的比例；"id"表示CPU处于空闲状态的时间占CPU总运行时间的比例；"wa"表示CPU等待I/O事件的时间占CPU总运行时间的比例。
+>
+>   不过，我们可以使用`iostat`命令获得磁盘使用情况的更多信息，也可以使用`mpstat`获得CPU使用情况的更多信息。`vmstat`命令主要用于查看系统内存的使用情况。
+
+# 15 ifstat
+
+> ​	`ifstat`是inferface statistics的缩写，它是一个简单的网络流量监测工具。其常用的选项和参数包括：
+>
+> * `-a`，监测系统上的所有网卡接口。
+>
+> * `-i`，指定要监测的网卡接口。
+>
+> * `-t`，在每行输出信息前加上时间戳。
+>
+> * `-b`，以Kbit/s为单位显示数据，而不是默认的KB/s。
+>
+> * `delay`，采样间隔，即每隔`delay`的时间输出一次统计信息。
+>
+> * `count`，采样次数，即供输出`count`次统计信息。
+>
+>   举例来说，我们在测试机器ernest-laptop上执行如下命令：
+>
+>   ![image-20230630190046380](https://pic1.xuehuaimg.com/proxy/https://cdn.jsdelivr.net/gh/moshang1314/myBlog@main/image/image-20230630190046380.png)
+>
+>   ​	从输出来看，ernest-laptop拥有两个网卡接口：虚拟的回路接口lo以及以太网网卡接口eth0。`ifstat`的每条输出都以KB/s为单位显示各网卡接口上接收和发送数据的速率。因此，使用`ifstat`命令就可以大概估计各个时段服务器的总输入、输出流量。
+
+# 16 mpstat
+
+> 
+
+# 17 `eventfd是什么？`
+
+> [Linux fd 系列 — eventfd 是什么？_煎鱼（EDDYCJY）的博客-CSDN博客](https://blog.csdn.net/EDDYCJY/article/details/118980819)
+>
+> [存储基础 — 文件描述符 fd 究竟是什么？ (qq.com)](https://mp.weixin.qq.com/s?__biz=Mzg3NTU3OTgxOA%3D%3D&chksm=cf3e0786f8498e903b463ac2ddaac2a0fb4cebac7c6cbf02ff02348fbc71dcd80d09a26c4257&idx=1&mid=2247489347&scene=21&sn=e897fd2f3584fe0fe0c011d4e6503274#wechat_redirect)
+
+# 18 `prctl`系统调用
+
+> 原文链接：https://blog.csdn.net/lvxu666/article/details/130821330
+>
+> `prctl`是一个系统调用，用于控制和修改进程的行为和属性。它可以在Linux系统上使用，提供了各自功能和选项来管理进程的不同方面。
+>
+> 以下是`prctl`函数的基本原型：
+>
+> ```c
+> #include <sys/prctl.h>
+> 
+> int prctl(int option, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5);
+> ```
+>
+> `prctl`函数接受不同的`option`选项和参数，用于执行不同的操作。下面是一些常用的`option`选项及其功能：
+>
+> `PR_SET_NAME`：设置进程名称。
+> `PR_GET_NAME`：获取进程名称。
+> `PR_SET_PDEATHSIG`：设置在父进程终止时发送给当前进程的信号。
+> `PR_GET_PDEATHSIG`：获取父进程终止时发送给当前进程的信号。
+> `PR_SET_DUMPABLE`：设置进程的可转储标志，影响核心转储。
+> `PR_GET_DUMPABLE`：获取进程的可转储标志。
+> `PR_SET_SECCOMP`：设置进程的安全计算模式。
+> `PR_GET_SECCOMP`：获取进程的安全计算模式。
+> 这些仅是一些常用的选项，`prctl`还支持其他选项和功能。每个选项都有特定的参数，可以根据需要传递。具体的参数和行为取决于所选的选项。
+>
+> 以下是一个简单的示例，展示了如何使用`prctl`函数设置进程名称：
+>
+> ```c
+> #define _GNU_SOURCE
+> #include <sys/prctl.h>
+> #include <stdio.h>
+> 
+> int main() {
+>     const char* process_name = "MyProcess";
+> 
+>     if (prctl(PR_SET_NAME, (unsigned long) process_name) == -1) {
+>         perror("prctl");
+>         return 1;
+>     }
+> 
+>     // 获取进程名称
+>     char name[16];
+>     if (prctl(PR_GET_NAME, (unsigned long) name) == -1) {
+>         perror("prctl");
+>         return 1;
+>     }
+> 
+>     printf("Process name: %s\n", name);
+> 
+>     return 0;
+> }
+> ```
+>
+> 在上述示例中，我们使用prctl函数将当前进程的名称设置为"MyProcess"。然后，我们再次使用prctl函数获取进程的名称，并将其打印到标准输出。请注意，prctl函数的具体行为和可用选项可能因操作系统和版本而异。在使用prctl函数时，应该查阅相关文档并了解所使用的操作系统的支持和限制。
+>

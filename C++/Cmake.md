@@ -5,9 +5,14 @@
 > ```cmake
 > # 指定cmake的最低要求版本
 > cmake_minimum_required(VERSION 3.10)
+> #定义当前工程名字
 > project(hello)
 > # 指定C++标准
 > set(CMAKE_CXX_STANDARD 11)
+> # 设置debug模式，如果没有设置将不能调试断点
+> set(CMAKE_BUILD_TYPE "Debug")
+> # 配置
+> set(CMAKE_CXX_FLAGs ${CMAKE_CXX_FLAGS} -g)
 > # 指定输出路径
 > set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 > # 搜索源文件, ${PROJECT_SOURCE}为cmake命令后面传入的CMakeLists.txt的路径
